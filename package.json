@@ -1,7 +1,7 @@
 {
   "name": "orion-desktop",
   "productName": "Orion",
-  "version": "2.3.2",
+  "version": "2.3.3",
   "description": "Orion 本地 AI 聊天桌面端",
   "main": "main.js",
   "scripts": {

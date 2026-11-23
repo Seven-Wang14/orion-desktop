@@ -373,6 +373,7 @@ async function send(text, opts) {
   conv.messages.push(am);
   $('#input').value = '';
   autoHeight();
+  if ($('#sendBtn')) $('#sendBtn').disabled = true;
   save(); renderConvs(); renderTop(); renderChat();
 
   const node = $('#msgWrap').lastElementChild;
@@ -494,7 +495,11 @@ function regen(idx) {
 }
 
 
-$('#input').addEventListener('input', autoHeight);
+$('#input').addEventListener('input', function () {
+  autoHeight();
+  var s = $('#sendBtn');
+  if (s) s.disabled = !$('#input').value.trim();
+});
 $('#input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send($('#input').value); }
 });
@@ -846,7 +851,6 @@ async function agentLoop(run) {
 }
 
 
-$('#tabWork').addEventListener('click', showWork);
 $('#taskCloseX').addEventListener('click', taskClose);
 $('#taskMask').addEventListener('click', (e) => { if (e.target === $('#taskMask')) taskClose(); });
 $('#agRun').addEventListener('click', startAgentRun);
@@ -881,8 +885,9 @@ function __initOrion() {
   renderTop(); renderConvs(); renderChat(); renderQuota(); renderTasks();
   renderHome();
   var hh = new Date().getHours();
-  var hi = hh < 5 ? '夜深了' : hh < 11 ? '早上好' : hh < 13 ? '中午好' : hh < 18 ? '下午好' : '晚上好';
-  if ($('#heroSay')) $('#heroSay').textContent = hi + '，我是 Orion AI。';
+  var hi = hh < 5 ? '夜深了' : hh < 9 ? '早上好' : hh < 12 ? '上午好' : hh < 14 ? '中午好' : hh < 18 ? '下午好' : hh < 23 ? '晚上好' : '夜深了';
+  if ($('#heroSay')) $('#heroSay').textContent = hi + '，我是 Orion AI！';
+  if ($('#prjName')) $('#prjName').textContent = wsLabel(store.workPath || agWork);
   if ($('#agPerms')) $('#agPerms').value = store.agPerms || 'workspace';
   if (window.orion && window.orion.info) {
     window.orion.info().then((i) => { if (i && i.work) { agWork = i.work; $('#agWorkPath').textContent = i.work; $('#agWorkPath').title = i.work; } }).catch(() => {});
@@ -890,6 +895,7 @@ function __initOrion() {
   if (store.web) $('#webPill').classList.add('on');
   if (store.key) fetchBalance(true); else if ($('#balState')) $('#balState').textContent = '未填 API Key，无法拉取';
   autoHeight();
+  if ($('#sendBtn')) $('#sendBtn').disabled = !$('#input').value.trim();
   $('#input').focus();
   if (!store.key) setTimeout(() => openSettings('填好 API Key 就能开始聊了', 'general'), 700);
 }
@@ -1093,9 +1099,8 @@ $('#wsPill').addEventListener('click', function () {
 });
 
 
-$('#tabChat').addEventListener('click', function () {
-  $('#newChatBtn').click();
-});
+$('#workNewBtn').addEventListener('click', function () { showWork(); });
+$('#prjWork').addEventListener('click', function () { showWork(); });
 
 var WFILTER = 'all';
 
@@ -1173,6 +1178,8 @@ function renderWork() {
   var w = store.workPath || agWork || 'workspace';
   var wt = $('#wpWorkTxt');
   if (wt) { wt.textContent = w; wt.title = w; }
+  var pn = $('#prjName');
+  if (pn) { pn.textContent = wsLabel(w); pn.title = w; }
   renderWorkList();
 }
 
@@ -1222,7 +1229,7 @@ $('#wpClear').addEventListener('click', function () {
 });
 
 __initOrion();
-showWork();
+showChatV();
 
 
 

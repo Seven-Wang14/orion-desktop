@@ -30,12 +30,20 @@
       </div>
     </div>
 
-    <button class="newbtn" id="newChatBtn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
-        <circle cx="12" cy="12" r="8.4"/><path d="M12 8.2v7.6M8.2 12h7.6"/>
-      </svg>
-      新会话
-    </button>
+    <div class="sideacts">
+      <button class="navbtn on" id="newChatBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+          <path d="M19.4 12.2a7.4 7.4 0 0 1-11 6.6L4.6 20l1.2-3.7A7.4 7.4 0 1 1 19.4 12.2z"/>
+        </svg>
+        新对话
+      </button>
+      <button class="navbtn" id="workNewBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+          <path d="M4.6 18.4l.9-3.6 9-9a1.6 1.6 0 0 1 2.3 0l1.4 1.4a1.6 1.6 0 0 1 0 2.3l-9 9z"/>
+        </svg>
+        新工作任务
+      </button>
+    </div>
 
     <div class="srchwrap" id="srchwrap"><input id="srch" placeholder="搜索对话…"></div>
 
@@ -45,6 +53,15 @@
       <button class="mscancel" id="msCancel">取消</button>
     </div>
 
+    <div class="glab">项目</div>
+    <button class="navbtn sm" id="prjWork">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+        <path d="M3.6 7.6a1.8 1.8 0 0 1 1.8-1.8h4l1.8 2h7.4a1.8 1.8 0 0 1 1.8 1.8v7.6a1.8 1.8 0 0 1-1.8 1.8H5.4a1.8 1.8 0 0 1-1.8-1.8z"/>
+      </svg>
+      <span id="prjName">工作区</span>
+    </button>
+
+    <div class="glab">最近</div>
     <div class="side-body" id="convList"></div>
 
     
@@ -65,10 +82,7 @@
   
   <div class="main">
     <div class="top">
-      <div class="modes">
-        <button class="mtab on" id="tabChat">对话</button>
-        <button class="mtab" id="tabWork">工作</button>
-      </div>
+      <div class="topttl" id="topTitle"></div>
       <div class="rt">
         <button class="ibtn" id="clearBtn" title="清空当前对话">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
@@ -86,8 +100,8 @@
 
     <div class="hero" id="hero">
       <div class="hero-in">
-        <div class="hero-say" id="heroSay">你好，我是 Orion AI。</div>
-        <div class="hero-sub">能聊天，也能把活直接交给它做：改文件、跑命令、整理目录。</div>
+        <img class="hmark" src="orion-mark.svg" alt="">
+        <div class="hero-say" id="heroSay">你好，我是 Orion AI</div>
       </div>
     </div>
 
@@ -141,13 +155,8 @@
     <div class="cwrap">
       <div class="composer">
         <div class="chips" id="chips"></div>
-        <textarea id="input" rows="1" placeholder="想做什么，直接说"></textarea>
+        <textarea id="input" rows="1" placeholder="给 Orion AI 发送消息"></textarea>
         <div class="crow">
-          <button class="att" id="attBtn" title="上传图片或文件">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-              <path d="M12 5.6v12.8M5.6 12h12.8"/>
-            </svg>
-          </button>
           <button class="pill" id="thinkPill" title="用思考模型回答">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
               <path d="M12 3.4l2.1 5.9 5.9 2.1-5.9 2.1-2.1 5.9-2.1-5.9L4 11.4l5.9-2.1z"/>
@@ -162,6 +171,11 @@
             联网搜索
           </button>
           <div class="cright">
+            <button class="att" id="attBtn" title="上传图片或文件">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+                <path d="M16.4 8.1l-7 7a2.6 2.6 0 0 1-3.7-3.7l8.2-8.2a4.2 4.2 0 0 1 5.9 5.9l-8.3 8.3a6 6 0 0 1-8.5-8.5l7.6-7.6"/>
+              </svg>
+            </button>
             <button class="mpill" id="modelPill" title="切换模型">
               <span id="modelPillTxt">DeepSeek V3</span>
               <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7.4 10l4.6 4.4 4.6-4.4"/></svg>
@@ -318,11 +332,17 @@
           <div class="doc">
             <div class="vwrap">
               <div>
-                <div class="vbig">Orion AI 2.3.2</div>
+                <div class="vbig">Orion AI 2.3.3</div>
                 <div class="vinfo">2026-11-23 · 桌面版（Electron 35 / Windows x64）</div>
               </div>
               <span class="vtag">当前版本</span>
             </div>
+            <h4>2.3.3 主要变化</h4>
+            <ul>
+              <li>侧栏改成「新工作任务 / 新对话」两个入口，下面是项目工作区和最近对话，样式参照主流的桌面 AI 客户端。</li>
+              <li>启动直接进对话页，不再一打开就跳到工作任务。</li>
+              <li>问候语按时段细分：早上好 / 上午好 / 中午好 / 下午好 / 晚上好 / 夜深了。</li>
+            </ul>
             <h4>2.3.2 主要变化</h4>
             <ul>
               <li>界面重做：左侧只保留品牌、新会话和对话历史，顶部用「对话 / 工作」两个页签切换，不再有导航列表。</li>
