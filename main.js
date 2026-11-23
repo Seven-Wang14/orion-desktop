@@ -8,13 +8,13 @@ const TASKKILL = path.join(SYS, 'System32', 'taskkill.exe');
 const SAFE_PATH = [path.join(SYS, 'System32'), path.join(SYS, 'System32', 'WindowsPowerShell', 'v1.0'), SYS,
   path.join(SYS, 'System32', 'Wbem'), process.env.PATH || ''].join(';');
 const BASE = app.isPackaged ? path.dirname(process.execPath) : __dirname;
-/* 数据放在用户漫游目录，覆盖安装/卸载都不会被安装器清掉 */
+
 const DATA = path.join(app.getPath('appData'), 'Orion');
 const WORK = path.join(DATA, 'workspace');
 const ICO = path.join(BASE, 'Orion.ico');
 try { fs.mkdirSync(DATA, { recursive: true }); } catch (e) {}
 try { fs.mkdirSync(WORK, { recursive: true }); } catch (e) {}
-/* 老版本把 data 放在安装目录：首次启动时迁移一次，原目录保留作备份 */
+
 try {
   const OLD = path.join(BASE, 'data');
   const flag = path.join(DATA, '.migrated');
@@ -25,7 +25,7 @@ try {
 } catch (e) {}
 app.setPath('userData', DATA);
 
-/* ================= 工作任务：本机工具执行 ================= */
+
 const PWSH = (() => {
   const cands = [
     'C:\\Program Files\\PowerShell\\7\\pwsh.exe',
