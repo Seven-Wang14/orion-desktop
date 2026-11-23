@@ -542,3 +542,113 @@ html[data-theme=dark] .wpnew:focus-within{border-color:#3b4a7d}
 .wempty{padding:24px 2px;font-size:13.5px;color:var(--muted);line-height:1.7}.main.work .top .ttl{display:none}
 .main.work #clearBtn{display:none}.wgoal{display:block}
 .wmeta{display:block}
+.side{border-right:1px solid var(--line);padding:10px 8px 8px}
+.side-head{padding:4px 8px 8px}
+.brand .lk{height:23px}
+.bname{font-size:15px;font-weight:600;letter-spacing:.01em}
+.side-tools{gap:0}
+.newbtn{height:36px;border-radius:8px;margin:8px 6px 8px;justify-content:flex-start;padding:0 12px;gap:8px;font-size:13.5px;background:transparent}
+.newbtn:hover{background:var(--hov);border-color:var(--line2)}
+.newbtn svg{width:15px;height:15px}
+.navlist{margin-top:2px;border-top:1px solid var(--line);padding-top:6px}
+.navit{height:33px;border-radius:6px;font-size:13.5px;gap:9px;padding:0 10px}
+.navit.on{background:transparent;color:var(--text);font-weight:500;padding-left:14px;box-shadow:inset 2px 0 0 var(--accent)}
+.navit.on:hover{background:var(--hov)}
+.wsblock{border-top:1px solid var(--line);margin-top:6px;padding-top:6px}
+.wshead{font-size:12px;color:var(--muted);padding:4px 10px 4px;letter-spacing:.02em}
+.wsitem{height:31px;border-radius:6px;font-size:13px;padding:0 9px}
+.wsitem.on{background:transparent;box-shadow:inset 2px 0 0 var(--accent);padding-left:11px;color:var(--text)}
+.wsitem.on:hover{background:var(--hov)}
+.main .top{border-bottom:1px solid var(--line);height:50px;flex:0 0 50px;padding:0 20px}
+.top .ttl{font-size:13.5px;color:var(--muted)}
+.hero{text-align:left;padding:0 24px}
+.main.empty .hero{align-items:flex-start;justify-content:flex-start;flex:1 1 auto;margin:0;padding:0 24px}
+.hero-in{max-width:820px;width:100%;margin:16vh auto 0}
+.hero-say{font-size:27px;line-height:1.4;font-weight:600;letter-spacing:-.015em}
+.hero-sub{margin-top:9px;font-size:13px;line-height:1.7;color:var(--muted)}
+.composer{border-radius:11px;padding:10px 12px 9px;box-shadow:none}
+.composer:focus-within{box-shadow:0 0 0 3px rgba(77,107,254,.07)}
+#input{font-size:15px;line-height:1.6}
+.pill{height:27px;padding:0 9px;border-radius:6px;font-size:12.5px;background:transparent;border:1px solid var(--line2)}
+.pill.on{border-color:#c6d2fd}
+.mpill{font-size:12.5px;color:var(--muted);height:27px;border-radius:6px}
+.send{width:31px;height:31px;border-radius:7px}
+.foot{font-size:11px;color:var(--muted);text-align:right;padding:6px 2px 2px;letter-spacing:.01em}
+.cwrap{padding:8px 24px 0}
+.wpwrap{max-width:880px;padding:16px 28px 36px}
+.wpttl{font-size:21px;font-weight:600;letter-spacing:-.01em}
+.wpsub{font-size:12.5px;color:var(--muted);margin-top:7px;max-width:620px}
+.wppills{margin-top:12px;gap:6px}
+.selpill{height:28px;border:1px solid var(--line);border-radius:6px;font-size:12.5px;padding:0 9px}
+.wpnew{border-radius:10px;padding:9px 12px 8px}
+#wpGoal{font-size:14.5px;min-height:40px;line-height:1.6}
+.wprow{margin-top:6px}
+.wphint{font-size:11.5px}
+.wpgo{height:29px;border-radius:6px;font-size:13px;padding:0 13px;background:#3d5cf6}
+.wpgo:hover{background:#2f4de6;filter:none}
+.wptabs{margin:20px 0 0;gap:16px;padding-bottom:0}
+.wtab{height:29px;padding:0;border-radius:0;font-size:13px;color:var(--muted);border-bottom:2px solid transparent}
+.wtab:hover{background:none;color:var(--text)}
+.wtab.on{background:none;color:var(--text);border-bottom-color:var(--text);font-weight:500}
+.wpsum{font-size:11.5px}
+.wclear{font-size:11.5px;padding:3px 4px}
+.wplist{gap:0;border-top:1px solid var(--line);margin-top:12px}
+.wcard{border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;padding:13px 6px}
+.wcard:hover{background:var(--hov);border-color:var(--line)}
+.wcard .agtime{font-size:11.5px;color:var(--muted)}
+.wst{background:none!important;padding:0;font-size:11.5px;display:inline-flex;align-items:center;gap:6px;min-width:62px;color:var(--sub)}
+.wst::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--muted)}
+.wst.run{background:none;color:var(--accent)}
+.wst.run::before{background:var(--accent)}
+.wst.done{background:none;color:#2f6a52}
+.wst.done::before{background:#3f9a72}
+.wst.err{background:none;color:#a2564f}
+.wst.err::before{background:#c26a60}
+.wgoal{font-size:14px;font-weight:500;color:var(--text)}
+.wmeta{font-size:11.5px;margin-top:3px}
+.wempty{font-size:13px;padding:22px 4px;color:var(--muted)}
+.qcard{border-radius:8px}
+html[data-theme=dark] .wpgo{background:#4a66ff}
+html[data-theme=dark] .wst.done{color:#7fc3a3}
+html[data-theme=dark] .wst.err{color:#e08d84}.hero-say{color:var(--text)}
+.hero-sub{color:var(--muted)}
+.foot{color:var(--muted);text-align:right}.modes{display:flex;gap:2px;background:var(--hov);border-radius:7px;padding:2px}
+.mtab{height:25px;padding:0 13px;border-radius:5px;font-size:12.5px;color:var(--muted);transition:.12s}
+.mtab:hover{color:var(--text)}
+.mtab.on{background:var(--bg);color:var(--text);box-shadow:0 1px 2px rgba(20,20,25,.07);font-weight:500}
+html[data-theme=dark] .mtab.on{background:#2b2d31}
+.side-body{border-top:1px solid var(--line);margin-top:6px;padding-top:6px}button,.ibtn,.newbtn,.navit,.wsitem,.pill,.mpill,.selpill,.mtab,.wtab,.wcard,.wpgo,.send,.wclear,.qdots,.qcard{transition:background-color .16s ease,color .16s ease,border-color .16s ease,box-shadow .16s ease}
+.ibtn:hover,.qdots:hover{background:#f4f6fa;color:var(--text)}
+html[data-theme=dark] .ibtn:hover{background:#262a30}
+.newbtn:hover{background:#f5f7fb;border-color:#d8dce6}
+html[data-theme=dark] .newbtn:hover{background:#23262b}
+.navit:hover{background:#f5f6f9}
+html[data-theme=dark] .navit:hover{background:#22252a}
+.wsitem:hover{background:#f5f6f9}
+html[data-theme=dark] .wsitem:hover{background:#22252a}
+.pill:hover,.selpill:hover{border-color:#ccd5e4;color:var(--text);background:#fff}
+html[data-theme=dark] .pill:hover,html[data-theme=dark] .selpill:hover{background:#20242a;border-color:#3a414b}
+.pill.on{background:#eff3ff;border-color:#c9d6fd;color:#3b5bfa}
+html[data-theme=dark] .pill.on{background:#232a3d;border-color:#3a4a76;color:#9db0ff}
+.mpill:hover{background:#f4f6fa;color:var(--text)}
+html[data-theme=dark] .mpill:hover{background:#262a30}
+.send:hover{background:#3450d8}
+.send:disabled,.send[disabled]{background:#e2e5ef;cursor:default}
+html[data-theme=dark] .send:hover{background:#cfd2da}
+.mtab:hover{background:transparent;color:var(--text)}
+.mtab.on:hover{background:var(--bg)}
+.wtab:hover{color:var(--text)}
+.wcard:hover{background:#f5f6f9}
+html[data-theme=dark] .wcard:hover{background:#20242a}
+.wcard:hover .wgoal{color:#1d2b6b}
+html[data-theme=dark] .wcard:hover .wgoal{color:#dfe6ff}
+.wpgo:hover{background:#2f4bdc}
+.wpgo:active{background:#2740c2}
+.wclear:hover{background:#f4f6fa;color:var(--text)}
+.qcard:hover{border-color:#d5dae6;background:#fbfcfe}
+html[data-theme=dark] .qcard:hover{background:#21242a;border-color:#33383f}
+.side-body .item:hover{background:#f5f6f9!important}.modes{background:#f3f4f8;border:1px solid #e9ebf1;border-radius:8px;padding:2px;display:inline-flex;gap:2px}
+html[data-theme=dark] .modes{background:#1e2126;border-color:#2b3038}
+.mtab{height:26px;padding:0 14px;border:0;border-radius:6px;background:transparent;color:#7b8290;font-size:12.5px}
+.mtab.on{background:#fff;color:var(--text);font-weight:500;box-shadow:0 1px 2px rgba(15,23,42,.09)}
+html[data-theme=dark] .mtab.on{background:#2a2e35;color:#e9ecf2}

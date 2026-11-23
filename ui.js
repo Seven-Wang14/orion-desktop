@@ -122,7 +122,7 @@ function toast(t) {
 
 function renderTop() {
   const c = cur();
-  $('#topTitle').textContent = c && c.messages.length ? (c.title || '新对话') : '新对话';
+  if ($('#topTitle')) $('#topTitle').textContent = c && c.messages.length ? (c.title || '新对话') : '新对话';
   $('#thinkPill').classList.toggle('on', store.model === 'deepseek-reasoner');
 }
 

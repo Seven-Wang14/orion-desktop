@@ -846,7 +846,7 @@ async function agentLoop(run) {
 }
 
 
-$('#taskOpen').addEventListener('click', showWork);
+$('#tabWork').addEventListener('click', showWork);
 $('#taskCloseX').addEventListener('click', taskClose);
 $('#taskMask').addEventListener('click', (e) => { if (e.target === $('#taskMask')) taskClose(); });
 $('#agRun').addEventListener('click', startAgentRun);
@@ -880,6 +880,9 @@ function __initOrion() {
   }
   renderTop(); renderConvs(); renderChat(); renderQuota(); renderTasks();
   renderHome();
+  var hh = new Date().getHours();
+  var hi = hh < 5 ? '夜深了' : hh < 11 ? '早上好' : hh < 13 ? '中午好' : hh < 18 ? '下午好' : '晚上好';
+  if ($('#heroSay')) $('#heroSay').textContent = hi + '，我是 Orion AI。';
   if ($('#agPerms')) $('#agPerms').value = store.agPerms || 'workspace';
   if (window.orion && window.orion.info) {
     window.orion.info().then((i) => { if (i && i.work) { agWork = i.work; $('#agWorkPath').textContent = i.work; $('#agWorkPath').title = i.work; } }).catch(() => {});
@@ -892,8 +895,8 @@ function __initOrion() {
 }
 
 var HOME_MODELS = [
-  { v: 'deepseek-chat', n: 'DeepSeek-Chat', d: '通用对话、写作与轻量任务' },
-  { v: 'deepseek-reasoner', n: 'DeepSeek-Reasoner', d: '深度推理、多步分析与复杂任务' }
+  { v: 'deepseek-chat', n: 'DeepSeek V3', d: '通用对话、写作与轻量任务' },
+  { v: 'deepseek-reasoner', n: 'DeepSeek R1', d: '深度推理、多步分析与复杂任务' }
 ];
 var HOME_MODES = {
   read: { n: '只读模式', d: '只能查看工作区，不做任何改动' },
@@ -904,6 +907,7 @@ var HOME_MODES = {
 function wsLabel(p) {
   if (!p) return '默认工作区';
   var s = String(p).replace(/[\\/]+$/, '');
+  if (/^[A-Za-z]:$/.test(s)) return s + ' 盘';
   var i = Math.max(s.lastIndexOf('\\'), s.lastIndexOf('/'));
   return i >= 0 ? s.slice(i + 1) : s;
 }
@@ -1088,28 +1092,24 @@ $('#wsPill').addEventListener('click', function () {
   });
 });
 
-$('#wsAddBtn').addEventListener('click', addWork);
 
-$('#homeBtn').addEventListener('click', showWork);
-
-$('#moreBtn').addEventListener('click', function () {
-  openMenu($('#moreBtn'), function (box) {
-    menuItem(box, '系统设置', '主题、模型、Key 与协议', function () { $('#setBtn').click(); }, false);
-    menuItem(box, '工作任务', '本机代理执行任务', function () { $('#taskOpen').click(); }, false);
-    menuItem(box, '更新说明', '查看版本变化', function () { openSettings('', 'release'); }, false);
-  });
+$('#tabChat').addEventListener('click', function () {
+  $('#newChatBtn').click();
 });
 
 var WFILTER = 'all';
+
+function tabState(work) {
+  if ($('#tabWork')) $('#tabWork').classList.toggle('on', work);
+  if ($('#tabChat')) $('#tabChat').classList.toggle('on', !work);
+}
 
 function showWork() {
   var m = document.querySelector('.main');
   if (!m) return;
   m.classList.add('work');
   m.classList.remove('empty');
-  $('#topTitle').textContent = '工作任务';
-  $('#homeBtn').classList.add('on');
-  $('#taskOpen').classList.remove('on');
+  tabState(true);
   renderWork();
   var g = $('#wpGoal');
   if (g) setTimeout(function () { g.focus(); }, 40);
@@ -1119,8 +1119,7 @@ function showChatV() {
   var m = document.querySelector('.main');
   if (!m) return;
   m.classList.remove('work');
-  $('#homeBtn').classList.remove('on');
-  $('#taskOpen').classList.remove('on');
+  tabState(false);
   renderChat();
   renderTop();
 }
@@ -1144,8 +1143,8 @@ function renderWorkList() {
   }
   if (!runs.length) {
     box.innerHTML = '<div class="wempty">' + (all.length
-      ? '这个筛选下没有任务，换个标签看看。'
-      : '还没有任务。在上面写一句目标，点「开始执行」，代理会自己列目录、读文件、跑命令，每一步都实时展示。') + '</div>';
+      ? '这个筛选下没有任务。'
+      : '还没有任务。写一句要它做的事，回车就开始。') + '</div>';
     return;
   }
   box.innerHTML = '';

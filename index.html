@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Orion</title>
+<title>Orion AI</title>
 <link rel="icon" href="Orion.ico">
 <link rel="stylesheet" href="styles.css">
 </head><body>
@@ -14,7 +14,7 @@
     <div class="side-head">
       <div class="brand">
         <img class="lk" src="orion-mark.svg" alt="Orion">
-        <span class="bname">Orion</span>
+        <span class="bname">Orion AI</span>
       </div>
       <div class="side-tools">
         <button class="ibtn" id="searchBtn" title="搜索对话">
@@ -36,39 +36,6 @@
       </svg>
       新会话
     </button>
-
-    <nav class="navlist">
-      <button class="navit on" id="homeBtn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="4" y="4" width="6.6" height="6.6" rx="1.4"/><rect x="13.4" y="4" width="6.6" height="6.6" rx="1.4"/>
-          <rect x="4" y="13.4" width="6.6" height="6.6" rx="1.4"/><rect x="13.4" y="13.4" width="6.6" height="6.6" rx="1.4"/>
-        </svg>
-        工作台
-      </button>
-      <button class="navit" id="taskOpen" title="工作任务">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
-          <circle cx="12" cy="12" r="8.2"/><path d="M12 7.4v5l3.4 2"/>
-        </svg>
-        工作任务
-        <span class="tnum" id="taskBadge" hidden>0</span>
-      </button>
-      <button class="navit" id="moreBtn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
-          <circle cx="6" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18" cy="12" r="1.6"/>
-        </svg>
-        更多
-      </button>
-    </nav>
-
-    <div class="wsblock">
-      <div class="wshead">
-        <span>工作区</span>
-        <button class="ibtn xs" id="wsAddBtn" title="添加工作区">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5.4v13.2M5.4 12h13.2"/></svg>
-        </button>
-      </div>
-      <div class="wslist" id="wsList"></div>
-    </div>
 
     <div class="srchwrap" id="srchwrap"><input id="srch" placeholder="搜索对话…"></div>
 
@@ -98,7 +65,10 @@
   
   <div class="main">
     <div class="top">
-      <div class="ttl" id="topTitle">新对话</div>
+      <div class="modes">
+        <button class="mtab on" id="tabChat">对话</button>
+        <button class="mtab" id="tabWork">工作</button>
+      </div>
       <div class="rt">
         <button class="ibtn" id="clearBtn" title="清空当前对话">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
@@ -115,12 +85,10 @@
     </div>
 
     <div class="hero" id="hero">
-      <div class="hero-brand">
-        <img class="hmark" src="orion-mark.svg" alt="">
-        <span class="bword">Orion</span>
-        <span class="prebadge">预览版</span>
+      <div class="hero-in">
+        <div class="hero-say" id="heroSay">你好，我是 Orion AI。</div>
+        <div class="hero-sub">能聊天，也能把活直接交给它做：改文件、跑命令、整理目录。</div>
       </div>
-      <div class="hero-say" id="heroSay">有什么想完成的？说一句，我带着工具去做。</div>
     </div>
 
     <div class="workpage" id="workPage">
@@ -173,7 +141,7 @@
     <div class="cwrap">
       <div class="composer">
         <div class="chips" id="chips"></div>
-        <textarea id="input" rows="1" placeholder="描述你想完成的事，/ 调用指令，@ 引用文件或对话"></textarea>
+        <textarea id="input" rows="1" placeholder="想做什么，直接说"></textarea>
         <div class="crow">
           <button class="att" id="attBtn" title="上传图片或文件">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
@@ -195,7 +163,7 @@
           </button>
           <div class="cright">
             <button class="mpill" id="modelPill" title="切换模型">
-              <span id="modelPillTxt">DeepSeek-Chat</span>
+              <span id="modelPillTxt">DeepSeek V3</span>
               <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7.4 10l4.6 4.4 4.6-4.4"/></svg>
             </button>
             <button class="mic" id="micBtn" title="语音输入">
@@ -217,7 +185,7 @@
       </div>
       <input type="file" id="fileIn" multiple hidden
         accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md,.csv,.json,.log">
-      <div class="foot">内容由 AI 生成，请仔细甄别</div>
+      <div class="foot">对话与文件只存在这台电脑上</div>
     </div>
   </div>
 </div>
@@ -306,8 +274,8 @@
             <label>默认模型</label>
             <div class="sctl">
               <select id="modelSel">
-                <option value="deepseek-chat">对话模型（deepseek-chat）</option>
-                <option value="deepseek-reasoner">思考模型（deepseek-reasoner）</option>
+                <option value="deepseek-chat">DeepSeek V3（deepseek-chat）</option>
+                <option value="deepseek-reasoner">DeepSeek R1（deepseek-reasoner）</option>
               </select>
             </div>
           </div>
@@ -350,11 +318,19 @@
           <div class="doc">
             <div class="vwrap">
               <div>
-                <div class="vbig">Orion 2.3.1</div>
+                <div class="vbig">Orion AI 2.3.2</div>
                 <div class="vinfo">2026-11-23 · 桌面版（Electron 35 / Windows x64）</div>
               </div>
               <span class="vtag">当前版本</span>
             </div>
+            <h4>2.3.2 主要变化</h4>
+            <ul>
+              <li>界面重做：左侧只保留品牌、新会话和对话历史，顶部用「对话 / 工作」两个页签切换，不再有导航列表。</li>
+              <li>「工作」页签就是任务面板：写目标、开始执行、按状态筛选，工作区与权限模式放在上方。</li>
+              <li>品牌统一为 Orion AI，去掉「预览版」标记；输入框提示改为「想做什么，直接说」。</li>
+              <li>模型名称改为 DeepSeek V3 / DeepSeek R1，右下角与设置项同步。</li>
+              <li>整体收紧间距、1px 分隔线、去圆角，输入与列表更接近桌面工具而非网页模板。</li>
+            </ul>
             <h4>2.3.1 主要变化</h4>
             <ul>
               <li>「工作台」改为真正的工作任务面板：顶部直接写任务目标、开始执行，下面是任务列表，可按全部 / 进行中 / 已完成筛选，点条目看完整步骤。</li>
