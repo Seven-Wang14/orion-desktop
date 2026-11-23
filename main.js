@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, shell, session, ipcMain } = require('electron');
+const { app, BrowserWindow, Menu, shell, session, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
@@ -10,10 +10,11 @@ const SAFE_PATH = [path.join(SYS, 'System32'), path.join(SYS, 'System32', 'Windo
 const BASE = app.isPackaged ? path.dirname(process.execPath) : __dirname;
 
 const DATA = path.join(app.getPath('appData'), 'Orion');
-const WORK = path.join(DATA, 'workspace');
+const WORK_DEFAULT = path.join(DATA, 'workspace');
+let activeWork = WORK_DEFAULT;
 const ICO = path.join(BASE, 'Orion.ico');
 try { fs.mkdirSync(DATA, { recursive: true }); } catch (e) {}
-try { fs.mkdirSync(WORK, { recursive: true }); } catch (e) {}
+try { fs.mkdirSync(activeWork, { recursive: true }); } catch (e) {}
 
 try {
   const OLD = path.join(BASE, 'data');
@@ -46,8 +47,8 @@ function track(runId, child) {
   child.once('exit', () => { const s = children.get(runId); if (s) s.delete(child); });
 }
 function insideWork(p) {
-  const abs = path.resolve(WORK, p || '.');
-  const rel = path.relative(WORK, abs);
+  const abs = path.resolve(activeWork, p || '.');
+  const rel = path.relative(activeWork, abs);
   return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
 }
 function decode(buf) {
@@ -59,7 +60,7 @@ function runPwsh(command, { cwd, timeoutMs = 30000, runId } = {}) {
     const args = ['-NoProfile', '-NonInteractive', '-Command', '[Console]::OutputEncoding=[Text.Encoding]::UTF8;' + command];
     let child;
     try {
-      child = spawn(PWSH, args, { cwd: cwd || WORK, windowsHide: true, env: { ...process.env, PATH: SAFE_PATH, ORION_TASK: '1' } });
+      child = spawn(PWSH, args, { cwd: cwd || activeWork, windowsHide: true, env: { ...process.env, PATH: SAFE_PATH, ORION_TASK: '1' } });
     } catch (e) {
       return resolve({ ok: false, output: '无法启动 PowerShell：' + e.message });
     }
@@ -86,7 +87,7 @@ function runPwsh(command, { cwd, timeoutMs = 30000, runId } = {}) {
 const DANGER = /(shutdown|Restart-Computer|Stop-Computer|Format-Volume|Clear-Disk|Initialize-Disk|reg\s+delete|Remove-Item[\s\S]*-Recurse|rmdir\s+\/s|rd\s+\/s|del\s+\/[fsq]|cipher\s+\/w|bcdedit|diskpart|New-Service|Set-MpPreference|Disable-WindowsOptionalFeature)/i;
 
 async function toolRead(args) {
-  const p = path.resolve(WORK, args.file_path || '');
+  const p = path.resolve(activeWork, args.file_path || '');
   const st = await fs.promises.stat(p);
   if (!st.isFile()) return '不是文件：' + p;
   if (st.size > 2 * 1024 * 1024) return '文件过大（>2MB），请用 pwsh 分段读取';
@@ -99,14 +100,14 @@ async function toolRead(args) {
   return body + '\n(' + lines.length + ' 行，显示 ' + offset + '-' + (offset + slice.length - 1) + ')';
 }
 async function toolWrite(args) {
-  const p = path.resolve(WORK, args.file_path || '');
+  const p = path.resolve(activeWork, args.file_path || '');
   if (!args.file_path) throw new Error('缺少 file_path');
   await fs.promises.mkdir(path.dirname(p), { recursive: true });
   await fs.promises.writeFile(p, args.content || '', 'utf8');
   return '已写入 ' + p + '（' + Buffer.byteLength(args.content || '') + ' 字节）';
 }
 async function toolEdit(args) {
-  const p = path.resolve(WORK, args.file_path || '');
+  const p = path.resolve(activeWork, args.file_path || '');
   const oldS = args.old_string || '';
   const newS = args.new_string || '';
   if (!oldS) return 'old_string 不能为空';
@@ -119,7 +120,7 @@ async function toolEdit(args) {
   return '已修改 ' + p + '（替换 ' + (args.replace_all ? count : 1) + ' 处）';
 }
 async function toolList(args) {
-  const dir = path.resolve(WORK, args.path || '.');
+  const dir = path.resolve(activeWork, args.path || '.');
   const items = await fs.promises.readdir(dir, { withFileTypes: true });
   if (!items.length) return '(空目录)';
   return items.slice(0, 200).map((it) => {
@@ -167,7 +168,26 @@ Add-Type -AssemblyName System.Windows.Forms
 [System.Windows.Forms.SendKeys]::SendWait('__KEY__')
 `;
 
-ipcMain.handle('orion:info', () => ({ work: WORK, pwsh: PWSH, version: app.getVersion() }));
+ipcMain.handle('orion:info', () => ({ work: activeWork, pwsh: PWSH, version: app.getVersion() }));
+
+ipcMain.handle('orion:pickWork', async () => {
+  const r = await dialog.showOpenDialog(win, {
+    title: '选择工作区文件夹',
+    properties: ['openDirectory', 'createDirectory'],
+    defaultPath: activeWork,
+  });
+  if (r.canceled || !r.filePaths || !r.filePaths.length) return { ok: false };
+  return { ok: true, path: r.filePaths[0] };
+});
+
+ipcMain.handle('orion:setWork', (e, { dir }) => {
+  const p = String(dir || '');
+  try {
+    if (!p || !fs.existsSync(p) || !fs.statSync(p).isDirectory()) return { ok: false, msg: '目录不存在' };
+    activeWork = p;
+    return { ok: true, path: activeWork };
+  } catch (er) { return { ok: false, msg: er.message }; }
+});
 
 ipcMain.handle('orion:abort', async (e, { runId }) => {
   aborted.add(runId);
@@ -205,7 +225,7 @@ ipcMain.handle('orion:tool', async (e, { runId, name, args }) => {
         return out(false, '[拒绝] 当前权限只允许在工作区执行安全命令。请在任务面板切到“完全访问”后重试。');
       }
       const r = await runPwsh(args.command, {
-        cwd: path.resolve(WORK, args.workdir || '.'),
+        cwd: path.resolve(activeWork, args.workdir || '.'),
         timeoutMs: Math.min(300000, Math.max(2000, parseInt(args.timeoutMs, 10) || 30000)),
         runId,
       });
@@ -282,8 +302,8 @@ let win = null;
       }
     });
     Menu.setApplicationMenu(null);
-    const ext = path.join(BASE, 'Orion.html');
-    const inside = path.join(app.getAppPath(), 'Orion.html');
+    const ext = path.join(BASE, 'index.html');
+    const inside = path.join(app.getAppPath(), 'index.html');
     const target = fs.existsSync(ext) ? ext : inside;
     win.loadFile(target);
     win.once('ready-to-show', () => win.show());
@@ -322,3 +342,8 @@ let win = null;
   });
   app.on('window-all-closed', () => app.quit());
 }
+
+
+
+
+
