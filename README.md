@@ -109,13 +109,13 @@ npm start
 
 ```
 main.js            Electron 主进程、IPC 工具层、权限与路径监狱
-preload.js         暴露 window.orion（tool / abort / info）
-src/index.html     页面结构
-src/styles.css     全部样式
-src/js/core.js     存储、图标、Markdown
-src/js/ui.js       渲染、额度、主题、设置、任务卡片
-src/js/app.js      发送、流式、本机代理循环、事件绑定
-src/assets/        品牌矢量图
+preload.js         暴露 window.orion（tool / abort / info / 工作区选择）
+index.html         页面结构
+styles.css         全部样式
+core.js            存储、图标、Markdown
+ui.js              渲染、额度、主题、设置、任务卡片
+app.js             发送、流式、本机代理循环、工作台菜单与事件绑定
+orion-mark.svg     品牌矢量图
 ```
 
 ## 许可 / License
