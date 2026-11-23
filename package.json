@@ -1,0 +1,65 @@
+{
+  "name": "orion-desktop",
+  "productName": "Orion",
+  "version": "2.1.0",
+  "description": "Orion 本地 AI 聊天桌面端",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis --x64"
+  },
+  "author": "Orion Studio",
+  "license": "MIT",
+  "devDependencies": {
+    "@electron/packager": "^18.3.6",
+    "electron": "^35.0.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.orion.studio.chat",
+    "productName": "Orion",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "Orion.html",
+      "Orion.ico",
+      "package.json"
+    ],
+    "asar": true,
+    "compression": "maximum",
+    "afterPack": "afterPack.js",
+    "win": {
+      "icon": "Orion.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "Orion-Setup-${version}.exe",
+      "legalTrademarks": "",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Orion",
+      "installerIcon": "Orion.ico",
+      "uninstallerIcon": "Orion.ico",
+      "installerHeaderIcon": "Orion.ico",
+      "deleteAppDataOnUninstall": false,
+      "runAfterFinish": true,
+      "license": null
+    }
+  }
+}
