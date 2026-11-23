@@ -18,6 +18,9 @@ desktop.ini
 .idea/
 *.lnk
 
+# 单文件打包产物（不随仓库发布）
+Orion.html
+
 # 安装包
 *.exe
 *.blockmap
