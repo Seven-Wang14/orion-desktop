@@ -1,5 +1,5 @@
 
-/* ================= 渲染 ================= */
+
 function grpLabel(ts) {
   const d = new Date(ts), now = new Date();
   const key = (x) => x.getFullYear() * 1000 + x.getMonth() * 40 + x.getDate();
@@ -54,7 +54,7 @@ function renderConvs() {
   list.innerHTML = html;
 }
 
-/* ===== 会话「···」菜单 ===== */
+
 let menuId = null;
 function closeConvMenu() { const m = $('#cmenu'); if (m) m.hidden = true; menuId = null; }
 function openConvMenu(id, btn) {
@@ -284,7 +284,7 @@ function renderChat() {
   scrollBottom(true);
 }
 
-/* ================= 额度 ================= */
+
 function fmtTok(n) {
   if (!isFinite(n) || n <= 0) return '0';
   if (n >= 1e8) return (n / 1e8).toFixed(2) + ' 亿';
@@ -313,7 +313,7 @@ function renderQuota() {
   if (info) $('#apiBtn').title = '充值余额 ¥' + (info.topped || 0).toFixed(2) + ' · 赠送余额 ¥' + (info.granted || 0).toFixed(2);
 }
 
-/* 实时余额：官方 GET /user/balance */
+
 async function fetchBalance(silent) {
   const st = $('#balState'), btn = $('#balSyncBtn');
   const key = (store.key || '').trim();
@@ -361,14 +361,14 @@ function spend(usage) {
   fetchBalance(true);
 }
 
-/* ================= 主题 ================= */
+
 function applyTheme() {
   const dark = store.theme === 'dark' ||
     (store.theme === 'auto' && window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
   document.documentElement.dataset.theme = dark ? 'dark' : 'light';
 }
 
-/* ================= 设置 ================= */
+
 function switchPane(name) {
   $$('.nav').forEach((b) => b.classList.toggle('on', b.dataset.pane === name));
   $$('.pane').forEach((p) => p.classList.toggle('on', p.id === 'pane' + name.charAt(0).toUpperCase() + name.slice(1)));
@@ -405,7 +405,7 @@ function fallbackCopy(t) {
   ta.remove();
 }
 
-/* ================= 工作任务（本机代理） ================= */
+
 let agExpanded = {};
 let agWork = 'workspace';
 
