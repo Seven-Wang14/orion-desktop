@@ -446,6 +446,7 @@ function renderTasks() {
   agBadge();
   if (!runs.length) {
     list.innerHTML = '<div class="agemit">还没有任务。写一句目标，选好权限，点“开始执行”。</div>';
+    if (typeof renderWorkList === 'function') renderWorkList();
     return;
   }
   list.innerHTML = runs.map((r) => {
@@ -463,6 +464,7 @@ function renderTasks() {
       '<button class="agx" data-ag="del" data-id="' + r.id + '" title="删除">' + ICON.trash + '</button>' +
       '</div>' + body + '</div>';
   }).join('');
+  if (typeof renderWorkList === 'function') renderWorkList();
 }
 function taskOpen() {
   $('#taskMask').classList.add('on');

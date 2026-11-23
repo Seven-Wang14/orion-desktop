@@ -120,21 +120,51 @@
         <span class="bword">Orion</span>
         <span class="prebadge">预览版</span>
       </div>
-      <div class="hero-pills">
-        <button class="selpill" id="wsPill">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
-            <path d="M3.6 7.6a1.8 1.8 0 0 1 1.8-1.8h4l1.8 2h7.4a1.8 1.8 0 0 1 1.8 1.8v7.6a1.8 1.8 0 0 1-1.8 1.8H5.4a1.8 1.8 0 0 1-1.8-1.8z"/>
-          </svg>
-          <span id="wsPillTxt">默认工作区</span>
-          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7.4 10l4.6 4.4 4.6-4.4"/></svg>
-        </button>
-        <button class="selpill" id="modePill">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
-            <path d="M12 3.8l6.8 2.6v5.4c0 3.8-2.6 6.4-6.8 8.4-4.2-2-6.8-4.6-6.8-8.4V6.4z"/>
-          </svg>
-          <span id="modePillTxt">标准模式</span>
-          <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7.4 10l4.6 4.4 4.6-4.4"/></svg>
-        </button>
+      <div class="hero-say" id="heroSay">有什么想完成的？说一句，我带着工具去做。</div>
+    </div>
+
+    <div class="workpage" id="workPage">
+      <div class="wpwrap">
+        <div class="wphead">
+          <div class="wpttl">工作任务</div>
+          <div class="wpsub">本机代理在工作区里执行：读文件、跑命令、整理桌面，每一步都能看到</div>
+          <div class="wppills">
+            <button class="selpill" id="wsPill">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+                <path d="M3.6 7.6a1.8 1.8 0 0 1 1.8-1.8h4l1.8 2h7.4a1.8 1.8 0 0 1 1.8 1.8v7.6a1.8 1.8 0 0 1-1.8 1.8H5.4a1.8 1.8 0 0 1-1.8-1.8z"/>
+              </svg>
+              <span id="wsPillTxt">默认工作区</span>
+              <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7.4 10l4.6 4.4 4.6-4.4"/></svg>
+            </button>
+            <button class="selpill" id="modePill">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+                <path d="M12 3.8l6.8 2.6v5.4c0 3.8-2.6 6.4-6.8 8.4-4.2-2-6.8-4.6-6.8-8.4V6.4z"/>
+              </svg>
+              <span id="modePillTxt">标准模式</span>
+              <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7.4 10l4.6 4.4 4.6-4.4"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="wpnew">
+          <textarea id="wpGoal" rows="2" placeholder="描述任务目标，例如：把桌面截图按日期重命名，归档到工作区"></textarea>
+          <div class="wprow">
+            <span class="wphint">工作区 <code id="wpWorkTxt">workspace</code></span>
+            <span class="sp"></span>
+            <button class="wpgo" id="wpRun">开始执行</button>
+          </div>
+        </div>
+
+        <div class="wptabs">
+          <button class="wtab on" data-wf="all">全部</button>
+          <button class="wtab" data-wf="running">进行中</button>
+          <button class="wtab" data-wf="done">已完成</button>
+          <span class="sp"></span>
+          <span class="wpsum" id="wpSum"></span>
+          <button class="wclear" id="wpClear">清除已完成</button>
+        </div>
+
+        <div class="wplist" id="wpList"></div>
       </div>
     </div>
 
@@ -320,11 +350,18 @@
           <div class="doc">
             <div class="vwrap">
               <div>
-                <div class="vbig">Orion 2.3.0</div>
+                <div class="vbig">Orion 2.3.1</div>
                 <div class="vinfo">2026-11-23 · 桌面版（Electron 35 / Windows x64）</div>
               </div>
               <span class="vtag">当前版本</span>
             </div>
+            <h4>2.3.1 主要变化</h4>
+            <ul>
+              <li>「工作台」改为真正的工作任务面板：顶部直接写任务目标、开始执行，下面是任务列表，可按全部 / 进行中 / 已完成筛选，点条目看完整步骤。</li>
+              <li>工作区与权限模式两个选择器移到这里，和工作任务的执行环境放在一起。</li>
+              <li>「新会话」改为纯对话页：品牌、一句话问候、输入框，不再放任务入口和推荐卡片。</li>
+              <li>侧栏「工作台」「工作任务」都直接打开任务面板，不会再跳进聊天页；发消息、点历史会话会自动回到对话。</li>
+            </ul>
             <h4>2.3.0 主要变化</h4>
             <ul>
               <li>全新工作台界面：左侧导航（工作台、工作任务、更多）与工作区列表，中间为品牌区、工作区与模式选择、圆角输入卡片。</li>

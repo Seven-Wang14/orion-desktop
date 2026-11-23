@@ -305,6 +305,7 @@ async function send(text, opts) {
   }
   if ((!text && !atts.length) || busy.on) return;
   if (!store.key) { openSettings('先填 API Key 再发消息', 'general'); return; }
+  showChatV();
 
   const reuse = !!(opts && opts.reuse);
   const sending = reuse ? [] : atts.slice();
@@ -538,6 +539,7 @@ $('#input').addEventListener('drop', (e) => {
 $('#newChatBtn').addEventListener('click', () => {
   store.curId = null;
   save(); renderConvs(); renderChat(); renderTop();
+  showChatV();
   $('#input').focus();
 });
 
@@ -560,7 +562,7 @@ $('#convList').addEventListener('click', (e) => {
     renderConvs();
     return;
   }
-  store.curId = id; save(); renderConvs(); renderChat(); renderTop();
+  store.curId = id; save(); renderConvs(); renderChat(); renderTop(); showChatV();
 });
 
 $('#msCancel').addEventListener('click', () => { msMode = false; _sel.clear(); renderConvs(); });
@@ -844,7 +846,7 @@ async function agentLoop(run) {
 }
 
 
-$('#taskOpen').addEventListener('click', taskOpen);
+$('#taskOpen').addEventListener('click', showWork);
 $('#taskCloseX').addEventListener('click', taskClose);
 $('#taskMask').addEventListener('click', (e) => { if (e.target === $('#taskMask')) taskClose(); });
 $('#agRun').addEventListener('click', startAgentRun);
@@ -1088,9 +1090,7 @@ $('#wsPill').addEventListener('click', function () {
 
 $('#wsAddBtn').addEventListener('click', addWork);
 
-$('#homeBtn').addEventListener('click', function () {
-  $('#newChatBtn').click();
-});
+$('#homeBtn').addEventListener('click', showWork);
 
 $('#moreBtn').addEventListener('click', function () {
   openMenu($('#moreBtn'), function (box) {
@@ -1100,5 +1100,130 @@ $('#moreBtn').addEventListener('click', function () {
   });
 });
 
+var WFILTER = 'all';
+
+function showWork() {
+  var m = document.querySelector('.main');
+  if (!m) return;
+  m.classList.add('work');
+  m.classList.remove('empty');
+  $('#topTitle').textContent = '工作任务';
+  $('#homeBtn').classList.add('on');
+  $('#taskOpen').classList.remove('on');
+  renderWork();
+  var g = $('#wpGoal');
+  if (g) setTimeout(function () { g.focus(); }, 40);
+}
+
+function showChatV() {
+  var m = document.querySelector('.main');
+  if (!m) return;
+  m.classList.remove('work');
+  $('#homeBtn').classList.remove('on');
+  $('#taskOpen').classList.remove('on');
+  renderChat();
+  renderTop();
+}
+
+function wPermName(p) {
+  var m = HOME_MODES[p] || HOME_MODES.workspace;
+  return m.n;
+}
+
+function renderWorkList() {
+  var box = $('#wpList');
+  if (!box) return;
+  var all = store.tasks || [];
+  var runs = all.slice().sort(function (a, b) { return b.ts - a.ts; });
+  if (WFILTER === 'running') runs = runs.filter(function (r) { return r.status === 'running' || r.status === 'pending'; });
+  if (WFILTER === 'done') runs = runs.filter(function (r) { return r.status === 'done' || r.status === 'failed' || r.status === 'stopped'; });
+  var sum = $('#wpSum');
+  if (sum) {
+    var done = all.filter(function (r) { return r.status === 'done'; }).length;
+    sum.textContent = all.length ? '共 ' + all.length + ' 个 · 完成 ' + done + ' 个' : '';
+  }
+  if (!runs.length) {
+    box.innerHTML = '<div class="wempty">' + (all.length
+      ? '这个筛选下没有任务，换个标签看看。'
+      : '还没有任务。在上面写一句目标，点「开始执行」，代理会自己列目录、读文件、跑命令，每一步都实时展示。') + '</div>';
+    return;
+  }
+  box.innerHTML = '';
+  runs.forEach(function (r) {
+    var s = agStatus(r);
+    var last = (r.steps || []).slice(-1)[0];
+    var meta = ((r.steps || []).length || 0) + ' 步 · ' + wPermName(r.perms) + (last ? ' · ' + String(last.text || '').replace(/\s+/g, ' ').slice(0, 80) : '');
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'wcard';
+    b.dataset.id = r.id;
+    b.innerHTML = '<span class="wst ' + s[1] + '">' + s[0] + '</span>' +
+      '<span class="g"><span class="wgoal"></span><span class="wmeta"></span></span>' +
+      '<span class="agtime">' + agTime(r.ts) + '</span>';
+    b.querySelector('.wgoal').textContent = r.goal || '';
+    b.querySelector('.wmeta').textContent = meta;
+    b.addEventListener('click', function () { openTaskDetail(r.id); });
+    box.appendChild(b);
+  });
+}
+
+function renderWork() {
+  renderWsPill();
+  renderModelPill();
+  renderModePill();
+  var w = store.workPath || agWork || 'workspace';
+  var wt = $('#wpWorkTxt');
+  if (wt) { wt.textContent = w; wt.title = w; }
+  renderWorkList();
+}
+
+function openTaskDetail(id) {
+  Object.keys(agExpanded).forEach(function (k) { agExpanded[k] = false; });
+  agExpanded[id] = true;
+  $('#taskMask').classList.add('on');
+  renderTasks();
+  setTimeout(function () {
+    var el = document.querySelector('#agList .agcard[data-id="' + id + '"]');
+    if (el) el.scrollIntoView({ block: 'nearest' });
+  }, 80);
+}
+
+$('#wpRun').addEventListener('click', function () {
+  var g = ($('#wpGoal').value || '').trim();
+  if (!g) { toast('先写任务目标'); $('#wpGoal').focus(); return; }
+  $('#agGoal').value = g;
+  $('#agPerms').value = store.agPerms || 'workspace';
+  $('#wpGoal').value = '';
+  $('#wpGoal').style.height = 'auto';
+  startAgentRun();
+});
+
+$('#wpGoal').addEventListener('keydown', function (e) {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); $('#wpRun').click(); }
+});
+$('#wpGoal').addEventListener('input', function () {
+  this.style.height = 'auto';
+  this.style.height = Math.min(180, this.scrollHeight) + 'px';
+});
+
+$$('.wtab').forEach(function (b) {
+  b.addEventListener('click', function () {
+    WFILTER = b.dataset.wf;
+    $$('.wtab').forEach(function (x) { x.classList.toggle('on', x === b); });
+    renderWorkList();
+  });
+});
+
+$('#wpClear').addEventListener('click', function () {
+  var done = store.tasks.filter(function (t) { return t.status === 'done' || t.status === 'failed' || t.status === 'stopped'; }).length;
+  if (!done) { toast('没有已结束的任务'); return; }
+  store.tasks = store.tasks.filter(function (t) { return t.status === 'running' || t.status === 'pending'; });
+  save(); renderTasks();
+  toast('已清除 ' + done + ' 个已结束任务');
+});
+
 __initOrion();
+showWork();
+
+
 
