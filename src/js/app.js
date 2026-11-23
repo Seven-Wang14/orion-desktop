@@ -1,5 +1,5 @@
 
-/* ================= 发送 / 流式 ================= */
+
 function errText(status, body) {
   let detail = '';
   try { const j = JSON.parse(body); detail = (j.error && (j.error.message || j.error.code)) || ''; }
@@ -31,12 +31,12 @@ function autoHeight() {
 }
 addEventListener('resize', () => autoHeight());
 
-/* ================= 附件 ================= */
+
 var atts = [];
 var MAX_ATT = 8, MAX_BYTES = 20 * 1024 * 1024;
 var TEXT_EXT = ['txt', 'md', 'markdown', 'csv', 'json', 'log', 'yml', 'yaml', 'ini', 'js', 'ts', 'py', 'java', 'c', 'cpp', 'html', 'css', 'xml', 'sql'];
 var FILE_OCR_EXT = ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'tif', 'tiff'];
-/* 同一份文件/同一个问题不重复花钱 */
+
 var ocrCache = {}, webCache = {};
 var ATT_TEXT_MAX = 6000, WEB_TEXT_MAX = 5000;
 
@@ -85,7 +85,7 @@ function readImage(file) {
   });
 }
 
-/* 附件文字识别：官方 /v1/tools/ocr，图片和 PDF/Word/PPT 都走这里 */
+
 function apiBase() { return (store.base || 'https://api.deepseek.com').replace(/\/+$/, ''); }
 
 async function ocrAttach(a) {
@@ -112,7 +112,7 @@ async function ocrAttach(a) {
   return txt.replace(/<｜[^｜]*｜>/g, '');
 }
 
-/* 联网搜索：官方 /v1/tools/search */
+
 async function webSearch(q) {
   const res = await fetch(apiBase() + '/v1/tools/search', {
     method: 'POST',
@@ -130,7 +130,7 @@ async function webSearch(q) {
   }).join('\n\n');
 }
 
-/* 语音合成：官方 /v1/tools/tts */
+
 var tts = { a: null, btn: null, url: '' };
 function plainText(md) {
   return String(md || '')
@@ -177,7 +177,7 @@ async function speak(text, btn) {
   }
 }
 
-/* 语音识别：录音 → 16k 单声道 WAV → /v1/tools/asr */
+
 var recState = { mr: null, chunks: [], stream: null, auto: 0 };
 
 async function toWav16k(blob) {
@@ -309,7 +309,7 @@ async function send(text, opts) {
   const reuse = !!(opts && opts.reuse);
   const sending = reuse ? [] : atts.slice();
 
-  /* 带附件时先把附件里的文字取出来；开了联网搜索就先搜 */
+  
   let attachText = '', ocrErr = '', webText = '';
   const docs = sending.filter((a) => a.kind === 'image' || FILE_OCR_EXT.indexOf(a.ext) >= 0);
   const texts = sending.filter((a) => a.kind === 'file' && TEXT_EXT.indexOf(a.ext) >= 0);
@@ -377,7 +377,7 @@ async function send(text, opts) {
   const node = $('#msgWrap').lastElementChild;
   setBusy(true);
 
-  /* 只带最近几轮 + 总字数上限，老的留在本机不重复计费 */
+  
   const CTX_CHARS = 24000;
   const rounds = typeof store.ctx === 'number' && store.ctx > 0 ? store.ctx : 0;
   let src = conv.messages.slice(0, -1);
@@ -492,7 +492,7 @@ function regen(idx) {
   send(c.messages[u].content, { reuse: true });
 }
 
-/* ================= 事件 ================= */
+
 $('#input').addEventListener('input', autoHeight);
 $('#input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send($('#input').value); }
@@ -500,7 +500,7 @@ $('#input').addEventListener('keydown', (e) => {
 $('#sendBtn').addEventListener('click', () => send($('#input').value));
 $('#stopBtn').addEventListener('click', () => { if (busy.ctrl) busy.ctrl.abort(); });
 
-/* ---------- 附件事件 ---------- */
+
 $('#micBtn').addEventListener('click', toggleRec);
 $('#webPill').addEventListener('click', () => {
   store.web = !store.web;
@@ -607,7 +607,7 @@ $('#thinkPill').addEventListener('click', () => {
   save(); renderTop();
 });
 
-/* 设置入口：侧栏额度卡 / 三个点 / 顶栏齿轮 */
+
 $('#apiBtn').addEventListener('click', () => openSettings('', 'token'));
 $('#setDots').addEventListener('click', (e) => { e.stopPropagation(); openSettings('', 'token'); });
 $('#setBtn').addEventListener('click', () => openSettings('', 'token'));
@@ -618,7 +618,7 @@ $$('.nav').forEach((b) => b.addEventListener('click', () => {
   if (b.dataset.pane === 'token') fetchBalance(true);
 }));
 
-/* 通用设置：改完即时保存 */
+
 $('#keyInput').addEventListener('change', () => { store.key = $('#keyInput').value.trim(); save(); });
 $('#baseInput').addEventListener('change', () => {
   store.base = $('#baseInput').value.trim() || 'https://api.deepseek.com'; save();
@@ -639,7 +639,7 @@ $('#testBtn').addEventListener('click', () => {
   testKey(false, $('#keyInput').value.trim(), $('#baseInput').value.trim() || 'https://api.deepseek.com');
 });
 
-/* Token 额度 */
+
 $('#topupBtn').addEventListener('click', () => {
   window.open('https://platform.deepseek.com/top_up', '_blank', 'noopener');
 });
@@ -709,7 +709,7 @@ $('#msgWrap').addEventListener('click', (e) => {
   }
 });
 
-/* ================= 工作任务：本机代理 ================= */
+
 const AG_MAX_STEPS = 12;
 const AG_PERM_LABEL = { read: '只读（读取与列目录、截屏）', workspace: '工作区写入（可读写工作区、跑安全命令）', full: '完全访问（可执行任意命令、操作鼠标键盘）' };
 
@@ -803,7 +803,7 @@ async function agentLoop(run) {
   try {
     for (let step = 0; step < AG_MAX_STEPS; step++) {
       if (run.stopped || run.status !== 'running') break;
-      if (!run.hist.some((m) => m.role === 'assistant') && step === 0) { /* first call */ }
+      if (!run.hist.some((m) => m.role === 'assistant') && step === 0) {  }
       const { text } = await agCallModel(run.hist);
       run.hist.push({ role: 'assistant', content: text });
       const obj = agParseJSON(text);
@@ -843,7 +843,7 @@ async function agentLoop(run) {
   }
 }
 
-/* 面板事件 */
+
 $('#taskOpen').addEventListener('click', taskOpen);
 $('#taskCloseX').addEventListener('click', taskClose);
 $('#taskMask').addEventListener('click', (e) => { if (e.target === $('#taskMask')) taskClose(); });
@@ -867,7 +867,7 @@ $('#agClear').addEventListener('click', () => {
   save(); renderTasks();
 });
 
-/* ================= 启动 ================= */
+
 window.__katexReady = function () { if (window.katex) renderChat(); };
 (function init() {
   applyTheme();
