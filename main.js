@@ -457,15 +457,22 @@ ipcMain.handle('orion:tool', async (e, { runId, name, args }) => {
 });
 
 let win = null;
-{
+
+// 单实例锁：重复双击图标时不再开新窗口，把已有窗口叫到前面
+const SINGLE_LOCK = app.requestSingleInstanceLock();
+if (!SINGLE_LOCK) app.quit();
+else {
   app.on('second-instance', () => {
-    if (!win) return;
-    if (win.isMinimized()) win.restore();
-    win.show();
-    win.focus();
+    try {
+      if (!win || win.isDestroyed()) { createWindow(); return; }
+      if (win.isMinimized()) win.restore();
+      win.show();
+      win.focus();
+    } catch (e) { console.error(e); }
   });
 
   function createWindow() {
+    if (win && !win.isDestroyed()) { win.show(); win.focus(); return; }
     win = new BrowserWindow({
       width: 1200, height: 820, minWidth: 900, minHeight: 600,
       backgroundColor: '#ffffff',
@@ -489,7 +496,10 @@ let win = null;
     const inside = path.join(app.getAppPath(), 'index.html');
     const target = fs.existsSync(ext) ? ext : inside;
     win.loadFile(target);
-    win.once('ready-to-show', () => win.show());
+    win.once('ready-to-show', () => { try { win.show(); } catch (e) {} });
+    // 兜底：页面迟迟不 ready 也把窗口显示出来，避免用户以为没启动而反复双击
+    setTimeout(() => { try { if (win && !win.isDestroyed() && !win.isVisible()) win.show(); } catch (e) {} }, 2500);
+    win.on('closed', () => { win = null; });
 
     if (process.env.DS_SHOT) {
       win.webContents.once('did-finish-load', () => {
