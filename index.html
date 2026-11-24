@@ -72,7 +72,7 @@
     <div class="side-body" id="convList"></div>
 
     
-    <div class="qcard" id="apiBtn" title="Token 额度">
+    <div class="qcard" id="apiBtn" data-i18n-title="dlg.token" title="Token 额度">
       <span class="qico">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
           <rect x="3" y="6.5" width="18" height="12" rx="2.4"/><path d="M3 10.5h18M7 14.5h3"/>
@@ -82,7 +82,7 @@
         <div class="qm"><span id="qMoney">¥ 0.00</span></div>
         <div class="qt" id="qTok">约 0 tokens</div>
       </div>
-      <button class="qdots" id="setDots" title="系统设置">···</button>
+      <button class="qdots" id="setDots" data-i18n-title="side.settings" title="系统设置">···</button>
     </div>
   </aside>
 
@@ -118,14 +118,14 @@
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
                 <path d="M3.6 7.6a1.8 1.8 0 0 1 1.8-1.8h4l1.8 2h7.4a1.8 1.8 0 0 1 1.8 1.8v7.6a1.8 1.8 0 0 1-1.8 1.8H5.4a1.8 1.8 0 0 1-1.8-1.8z"/>
               </svg>
-              <span id="wsPillTxt">默认工作区</span>
+              <span id="wsPillTxt" data-i18n="perm.workspace">工作区内修改</span>
               <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7.4 10l4.6 4.4 4.6-4.4"/></svg>
             </button>
             <button class="selpill" id="modePill">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
                 <path d="M12 3.8l6.8 2.6v5.4c0 3.8-2.6 6.4-6.8 8.4-4.2-2-6.8-4.6-6.8-8.4V6.4z"/>
               </svg>
-              <span id="modePillTxt">标准模式</span>
+              <span id="modePillTxt" data-i18n="work.standard">标准模式</span>
               <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7.4 10l4.6 4.4 4.6-4.4"/></svg>
             </button>
           </div>
@@ -134,7 +134,7 @@
         <div class="wpnew">
           <textarea id="wpGoal" rows="2" placeholder="描述任务目标，例如：把桌面截图按日期重命名，归档到工作区" data-i18n-ph="work.goal"></textarea>
           <div class="wprow">
-            <span class="wphint">工作区 <code id="wpWorkTxt">workspace</code></span>
+            <span class="wphint"><span data-i18n="work.area">工作区</span> <code id="wpWorkTxt">workspace</code></span>
             <span class="sp"></span>
             <button class="wpgo" id="wpRun" data-i18n="work.start">开始执行</button>
           </div>
@@ -157,8 +157,8 @@
     <div class="wview" id="wview" style="display:none">
       <div class="wv-top">
         <div class="wtabs">
-          <button data-wtab="dialog" class="on">对话</button>
-          <button data-wtab="trace">轨迹</button>
+          <button data-wtab="dialog" class="on" data-i18n="wv.dialog">对话</button>
+          <button data-wtab="trace" data-i18n="wv.trace">轨迹</button>
         </div>
         <div class="wstat" id="wstat"></div>
       </div>
@@ -174,9 +174,9 @@
         <div class="chips" id="chips"></div>
         <textarea id="input" rows="1" placeholder="给 Orion AI 发送消息" data-i18n-ph="comp.ph"></textarea>
         <div class="crow">
-          <button class="pill wspill" id="wspacePill" style="display:none" title="选择工作区">
+          <button class="pill wspill" id="wspacePill" style="display:none" data-i18n-title="ws.title" title="选择工作区">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3.6 7.6a1.8 1.8 0 0 1 1.8-1.8h4l1.8 2h7.4a1.8 1.8 0 0 1 1.8 1.8v7.6a1.8 1.8 0 0 1-1.8 1.8H5.4a1.8 1.8 0 0 1-1.8-1.8z"/></svg>
-            <span id="wspacePillTxt">工作区内修改</span>
+            <span id="wspacePillTxt" data-i18n="perm.workspace">工作区内修改</span>
           </button>
           <button class="pill" id="thinkPill" title="用思考模型回答" data-i18n-title="comp.thinkTip">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
@@ -240,7 +240,7 @@
 <div class="srcpanel" id="srcPanel">
   <div class="srchd">
     <div class="srcttl" data-i18n="src.title">搜索结果</div>
-    <button class="ibtn srcx" id="srcX" title="关闭">
+    <button class="ibtn srcx" id="srcX" data-i18n-title="wctl.close" title="关闭">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
   </div>
@@ -253,7 +253,7 @@
   <div class="dialog">
     <div class="dhead">
       <h3 data-i18n="dlg.title">系统设置</h3>
-      <button class="dx" id="closeX" title="关闭">
+      <button class="dx" id="closeX" data-i18n-title="wctl.close" title="关闭">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
     </div>
@@ -285,26 +285,26 @@
               <div class="tkline"><span class="tkcur">¥</span><span class="tknum" id="balNum">0.00</span></div>
               <div class="tksub"><span id="balTok">约 0 tokens</span><span class="sep">·</span><span id="balTime">未同步</span></div>
             </div>
-            <button class="topup" id="topupBtn">去充值</button>
+            <button class="topup" id="topupBtn" data-i18n="tk.topup">去充值</button>
           </div>
 
           <div class="srow">
-            <label>余额同步</label>
+            <label data-i18n="tk.sync">余额同步</label>
             <div class="sctl">
-              <span class="note" id="balState">尚未同步</span>
-              <button class="btn ghost sm" id="balSyncBtn">立即刷新</button>
+              <span class="note" id="balState" data-i18n="tk.notSync">尚未同步</span>
+              <button class="btn ghost sm" id="balSyncBtn" data-i18n="tk.refresh">立即刷新</button>
             </div>
           </div>
           <div class="srow">
-            <label>单价</label>
+            <label data-i18n="tk.rate">单价</label>
             <div class="sctl">
               <input class="narrow" id="rateInput" type="number" step="0.1" min="0.1" value="2">
-              <span class="unit">元 / 百万 tokens</span>
+              <span class="unit" data-i18n="tk.unit">元 / 百万 tokens</span>
             </div>
           </div>
           <div class="srow">
-            <label>说明</label>
-            <div class="sctl"><span class="note">余额来自官方接口 GET /user/balance，实时拉取；每次回答结束、打开设置都会自动刷新。单价只用于把余额换算成 token 数。</span></div>
+            <label data-i18n="tk.noteT">说明</label>
+            <div class="sctl"><span class="note" data-i18n="tk.note">余额来自官方接口 GET /user/balance，实时拉取；每次回答结束、打开设置都会自动刷新。单价只用于把余额换算成 token 数。</span></div>
           </div>
         </div>
 
@@ -357,45 +357,51 @@
             <label data-i18n="gen.ctx">上下文保留</label>
             <div class="sctl">
               <select id="ctxSel">
-                <option value="6">最近 6 轮（最省）</option>
-                <option value="12">最近 12 轮</option>
-                <option value="24">最近 24 轮</option>
-                <option value="0">全部（最贵）</option>
+                <option value="6" data-i18n="gen.ctx6">最近 6 轮（最省）</option>
+                <option value="12" data-i18n="gen.ctx12">最近 12 轮</option>
+                <option value="24" data-i18n="gen.ctx24">最近 24 轮</option>
+                <option value="0" data-i18n="gen.ctxAll">全部（最贵）</option>
               </select>
             </div>
           </div>
           <div class="srow col">
-            <div class="hintline">只把最近的对话发给模型，越早的内容留在本机但不重复计费；长附件和搜索结果也会自动截断。</div>
+            <div class="hintline" data-i18n="gen.ctxHint">只把最近的对话发给模型，越早的内容留在本机但不重复计费；长附件和搜索结果也会自动截断。</div>
           </div>
 
           <div class="srow col">
             <label>API Key</label>
             <div class="sctl wide">
               <input id="keyInput" type="password" placeholder="sk-..." autocomplete="off" spellcheck="false">
-              <button class="btn ghost sm" id="testBtn">测试连接</button>
+              <button class="btn ghost sm" id="testBtn" data-i18n="gen.test">测试连接</button>
             </div>
             <div class="hintline" id="testState"></div>
           </div>
 
           <div class="srow col">
-            <label>接口地址</label>
+            <label data-i18n="gen.baseLabel">接口地址</label>
             <div class="sctl wide">
               <input id="baseInput" placeholder="https://api.deepseek.com" spellcheck="false">
             </div>
-            <div class="hintline">默认官方地址；用中转的话换成代理地址。Key 只存本机浏览器，不经过第三方。</div>
+            <div class="hintline" data-i18n="gen.baseHint">默认官方地址；用中转的话换成代理地址。Key 只存本机浏览器，不经过第三方。</div>
           </div>
         </div>
 
         
         <div class="pane" id="paneRelease">
-          <div class="doc">
+          <div class="doc" id="relDoc">
             <div class="vwrap">
               <div>
-                <div class="vbig">Orion AI 2.4.1</div>
+                <div class="vbig">Orion AI 2.4.2</div>
                 <div class="vinfo">2026-11-24 · 桌面版（Electron 35 / Windows x64）</div>
               </div>
-              <span class="vtag">当前版本</span>
+              <span class="vtag" data-i18n="rel.current">当前版本</span>
             </div>
+            <h4>2.4.2 主要变化</h4>
+            <ul>
+              <li>系统文案补齐 7 语种：设置面板、模型与权限菜单、余额与单价说明、工作模式的步骤卡 / 改动卡 / 用量条 / 轨迹 / 空态，以及各类提示与报错，切语言立即生效，不再夹生中文。</li>
+              <li>会话里 AI 回复的操作按钮（朗读、重新生成、复制全文等）、思考状态、停止提示、附件标签、余额同步状态一并本地化。</li>
+              <li>数字单位跟随语言：中文用「亿 / 万」，其他语种用 M / K。</li>
+            </ul>
             <h4>2.4.1 主要变化</h4>
             <ul>
               <li>语音只花钱一次：每条回答朗读一遍就存成音频文件（按文本 + 音色做键），之后再点朗读直接播本地文件，不再请求接口、不再消耗 token。</li>
@@ -476,7 +482,7 @@
 
         
         <div class="pane" id="paneTerms">
-          <div class="doc">
+          <div class="doc" id="termDoc">
             <div class="vwrap">
               <div>
                 <div class="vbig">用户协议与隐私说明</div>

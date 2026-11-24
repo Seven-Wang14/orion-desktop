@@ -4,11 +4,12 @@ function errText(status, body) {
   let detail = '';
   try { const j = JSON.parse(body); detail = (j.error && (j.error.message || j.error.code)) || ''; }
   catch (e) { detail = String(body || '').slice(0, 160); }
-  if (status === 401) return 'API Key 无效或已失效（401）' + (detail ? '：' + detail : '');
-  if (status === 402) return '余额不足（402）' + (detail ? '：' + detail : '') + '，去开放平台充值后回来更新余额';
-  if (status === 422) return '请求参数有误（422）' + (detail ? '：' + detail : '');
-  if (status === 429) return '请求过于频繁，稍后再试（429）';
-  return '请求失败（' + status + '）' + (detail ? '：' + detail : '');
+  const sep = (LANG === 'zh' || LANG === 'zh-TW' || LANG === 'ja') ? '：' : ': ';
+  if (status === 401) return t('err.401') + (detail ? sep + detail : '');
+  if (status === 402) return t('err.402') + (detail ? sep + detail : '') + sep + t('err.402b');
+  if (status === 422) return t('err.422') + (detail ? sep + detail : '');
+  if (status === 429) return t('err.429');
+  return t('err.fail', { s: status }) + (detail ? sep + detail : '');
 }
 
 function setBusy(on) {
@@ -44,7 +45,7 @@ function readFileText(file) {
   return new Promise((res, rej) => {
     const fr = new FileReader();
     fr.onload = () => res(String(fr.result || '').slice(0, ATT_TEXT_MAX));
-    fr.onerror = () => rej(new Error('读取失败'));
+    fr.onerror = () => rej(new Error(t('m.readFail')));
     try { fr.readAsText(file); } catch (e) { rej(e); }
   });
 }
@@ -105,8 +106,8 @@ async function ocrAttach(a) {
   const body = await res.text();
   if (!res.ok) throw new Error(errText(res.status, body));
   let j;
-  try { j = JSON.parse(body); } catch (e) { throw new Error('识别结果解析失败'); }
-  if (j.error) throw new Error(j.error.message || '识别失败');
+  try { j = JSON.parse(body); } catch (e) { throw new Error(t('m.parseFail')); }
+  if (j.error) throw new Error(j.error.message || t('m.recFail'));
   if (j.usage) spend(j.usage);
   const txt = (j.pages || []).map((p) => p.text || '').join('\n\n').trim();
   return txt.replace(/<｜[^｜]*｜>/g, '');
@@ -165,7 +166,7 @@ function blobToDataURL(blob) {
   return new Promise(function (res, rej) {
     var fr = new FileReader();
     fr.onload = function () { res(String(fr.result || '')); };
-    fr.onerror = function () { rej(new Error('读取音频失败')); };
+    fr.onerror = function () { rej(new Error(t('m.readFail'))); };
     fr.readAsDataURL(blob);
   });
 }
@@ -177,7 +178,7 @@ function ttsPlay(src, btn) {
   btn.classList.add('on');
   btn.innerHTML = ICON.mute;
   a.onended = function () { btn.classList.remove('on'); btn.innerHTML = ICON.speak; tts.a = null; };
-  a.onerror = function () { toast('这条语音文件坏掉了，已清掉缓存，再点一次会重新合成'); btn.classList.remove('on'); btn.innerHTML = ICON.speak; tts.a = null; };
+  a.onerror = function () { toast(t('toast.ttsBad')); btn.classList.remove('on'); btn.innerHTML = ICON.speak; tts.a = null; };
   return a.play();
 }
 
@@ -211,7 +212,7 @@ async function speak(text, btn) {
   }
 
   // 3) 真没有才去合成，合成完存一份
-  toast('正在合成语音…（每条只合成一次）');
+  toast(t('toast.ttsMaking'));
   try {
     var res = await fetch(apiBase() + '/v1/tools/tts', {
       method: 'POST',
@@ -227,7 +228,7 @@ async function speak(text, btn) {
     }
     await ttsPlay(dataUrl, btn);
   } catch (e) {
-    toast('朗读失败：' + ((e && e.message) || '网络错误'));
+    toast(t('toast.ttsFail', { m: (e && e.message) || t('m.net') }));
   }
 }
 
@@ -268,12 +269,12 @@ function micUI(on) {
   const b = $('#micBtn');
   if (!b) return;
   b.classList.toggle('rec', !!on);
-  b.title = on ? '停止录音' : '语音输入';
+  b.title = on ? t('rec.stop') : t('rec.start');
 }
 
 async function toggleRec() {
   if (recState.mr) { recState.mr.stop(); return; }
-  if (!store.key) { openSettings('先填 API Key 再用语音', 'general'); return; }
+  if (!store.key) { openSettings(t('toast.needKeyVoice'), 'general'); return; }
   try {
     const st = await navigator.mediaDevices.getUserMedia({ audio: true });
     const mr = new MediaRecorder(st);
@@ -288,10 +289,10 @@ async function toggleRec() {
       const blob = new Blob(recState.chunks, { type: 'audio/webm' });
       recState.chunks = [];
       if (blob.size < 1500) return;
-      toast('正在识别语音…');
+      toast(t('toast.recMaking'));
       try {
         const wav = await toWav16k(blob);
-        if (wav.size > 8 * 1024 * 1024) throw new Error('录音太长，8MB 以内');
+        if (wav.size > 8 * 1024 * 1024) throw new Error(t('toast.recLong'));
         const fd = new FormData();
         fd.append('file', wav, 'speech.wav');
         const res = await fetch(apiBase() + '/v1/tools/asr', {
@@ -303,20 +304,20 @@ async function toggleRec() {
         if (!res.ok) throw new Error(errText(res.status, body));
         const j = JSON.parse(body);
         const t = String(j.text || '').trim();
-        if (!t) { toast('没听清楚，再说一次'); return; }
+        if (!t) { toast(t('toast.recNone')); return; }
         const inp = $('#input');
         inp.value = inp.value.trim() ? inp.value.replace(/\s+$/, '') + ' ' + t : t;
         autoHeight();
         inp.focus();
       } catch (e) {
-        toast('语音识别失败：' + ((e && e.message) || '网络错误'));
+        toast(t('toast.recFail', { m: (e && e.message) || t('m.net') }));
       }
     };
     mr.start();
     micUI(true);
     recState.auto = setTimeout(() => { if (recState.mr) recState.mr.stop(); }, 118000);
   } catch (e) {
-    toast('打不开麦克风：' + ((e && e.message) || '检查系统权限'));
+    toast(t('toast.micFail', { m: (e && e.message) || t('m.net') }));
     micUI(false);
   }
 }
@@ -334,14 +335,14 @@ async function addFiles(list) {
   const files = Array.from(list || []);
   for (const f of files) {
     if (!f) continue;
-    if (atts.length >= MAX_ATT) { toast('最多带 ' + MAX_ATT + ' 个附件'); break; }
-    if (f.size > MAX_BYTES) { toast((f.name || '文件') + ' 超过 20MB'); continue; }
+    if (atts.length >= MAX_ATT) { toast(t('toast.attMax', { n: MAX_ATT })); break; }
+    if (f.size > MAX_BYTES) { toast(t('toast.attBig', { name: f.name || t('m.attPrefix') })); continue; }
     const ext = ((f.name || '').split('.').pop() || '').toLowerCase();
     if (/^image\//.test(f.type || '')) {
       const r = await readImage(f);
-      if (r.thumb) atts.push({ kind: 'image', name: f.name || '图片', ext: ext || 'png', size: f.size, url: r.thumb, full: r.full, file: f });
+      if (r.thumb) atts.push({ kind: 'image', name: f.name || t('ui.img'), ext: ext || 'png', size: f.size, url: r.thumb, full: r.full, file: f });
     } else {
-      const a = { kind: 'file', name: f.name || '文件', ext: ext, size: f.size, file: f };
+      const a = { kind: 'file', name: f.name || t('ui.file'), ext: ext, size: f.size, file: f };
       if (TEXT_EXT.indexOf(ext) >= 0) a.preview = await readTextPreview(f);
       atts.push(a);
     }
@@ -354,10 +355,10 @@ async function send(text, opts) {
   text = (text || '').trim();
   if (text.length > 20000) {
     text = text.slice(0, 20000);
-    toast('输入太长，已截断到 2 万字再发送');
+    toast(t('toast.long'));
   }
   if ((!text && !atts.length) || busy.on) return;
-  if (!store.key) { openSettings('先填 API Key 再发消息', 'general'); return; }
+  if (!store.key) { openSettings(t('toast.needKeySend'), 'general'); return; }
 
   const workTarget = (typeof isWorkConv === 'function' && isWorkConv(cur())) || store.pendingKind === 'task';
   if (workTarget && text) {
@@ -387,38 +388,38 @@ async function send(text, opts) {
       } catch (e) {}
     }
     if (docs.length) {
-      toast('正在识别附件文字…');
+      toast(t('toast.ocrMaking'));
       for (const a of docs) {
         try {
           const ck = (a.name || '') + '|' + (a.size || 0) + '|' + ((a.file && a.file.lastModified) || 0);
           let t = ocrCache[ck];
           if (t == null) { t = await ocrAttach(a); ocrCache[ck] = t || ''; }
           if (t) {
-            const cut = t.length > ATT_TEXT_MAX ? t.slice(0, ATT_TEXT_MAX) + '\n…（内容过长，后面已截断）' : t;
-            attachText += (attachText ? '\n\n' : '') + '【' + (a.name || '附件') + '】\n' + cut;
+            const cut = t.length > ATT_TEXT_MAX ? t.slice(0, ATT_TEXT_MAX) + '\n' + t('m.tooLong') : t;
+            attachText += (attachText ? '\n\n' : '') + '【' + (a.name || t('m.attPrefix')) + '】\n' + cut;
           }
         } catch (e) { ocrErr = (e && e.message) ? e.message : String(e); }
       }
     }
     setBusy(false);
     if (!attachText && !text) {
-      toast('附件识别失败：' + (ocrErr || '没取到文字'));
+      toast(t('toast.ocrFail', { m: ocrErr || t('toast.ocrEmpty') }));
       return;
     }
-    if (ocrErr) toast('附件识别失败：' + ocrErr);
+    if (ocrErr) toast(t('toast.ocrFail', { m: ocrErr }));
   }
   let webList = [];
   if (store.web && text) {
     setBusy(true);
-    toast('正在联网搜索…');
+    toast(t('toast.webMaking'));
     try {
       const qk = text.slice(0, 128);
       if (webCache[qk] == null) webCache[qk] = await webSearch(text);
       const wr = webCache[qk] || { text: '', list: [] };
       webText = String(wr.text || '');
       webList = wr.list || [];
-      if (webText.length > WEB_TEXT_MAX) webText = webText.slice(0, WEB_TEXT_MAX) + '\n…（更多结果已省略）';
-    } catch (e) { toast('联网搜索失败：' + ((e && e.message) || '网络错误')); }
+      if (webText.length > WEB_TEXT_MAX) webText = webText.slice(0, WEB_TEXT_MAX) + '\n' + t('m.moreOmit');
+    } catch (e) { toast(t('toast.webFail', { m: (e && e.message) || t('m.net') })); }
     setBusy(false);
   }
 
@@ -433,8 +434,8 @@ async function send(text, opts) {
     if (webText) um.web = webText;
     if (webList.length) um.webList = webList;
     conv.messages.push(um);
-    const t0 = text || (sending[0] && sending[0].name) || '新对话';
-    if (conv.title === '新对话' || !conv.title) conv.title = t0.replace(/\s+/g, ' ').slice(0, 26);
+    const t0 = text || (sending[0] && sending[0].name) || t('conv.untitled');
+    if (conv.title === t('conv.untitled') || conv.title === '新对话' || !conv.title) conv.title = t0.replace(/\s+/g, ' ').slice(0, 26);
   }
   conv.ts = Date.now();
   const am = { role: 'assistant', content: '', reasoning: '', usage: null, elapsed: 0, t0: Date.now() };
@@ -526,7 +527,7 @@ async function send(text, opts) {
     am.content = buf; am.reasoning = reason; am.usage = usage;
     am.elapsed = Math.round((Date.now() - am.t0) / 1000);
     if (usage) spend(usage);
-    if (!buf && !reason) am.content = '（模型没有返回内容，请稍后重试）';
+    if (!buf && !reason) am.content = t('m.noContent');
     conv.ts = Date.now();
     save(); renderConvs(); renderChat(); scrollBottom(true);
   } catch (e) {
@@ -537,7 +538,7 @@ async function send(text, opts) {
       am.content = buf || '';
       if (!buf) am.content = '';
     } else if (e instanceof TypeError) {
-      am.content = buf + (buf ? '\n\n' : '') + '> 网络请求失败：检查网络，或浏览器拦截了跨域请求。';
+      am.content = buf + (buf ? '\n\n' : '') + '> ' + t('m.netNote');
     } else {
       am.content = buf + (buf ? '\n\n' : '') + '> ' + (e.message || e);
     }
@@ -647,7 +648,7 @@ $('#convList').addEventListener('click', (e) => {
 
 $('#msCancel').addEventListener('click', () => { msMode = false; _sel.clear(); renderConvs(); });
 $('#msDel').addEventListener('click', () => {
-  if (!_sel.size) { toast('先选中要删除的对话'); return; }
+  if (!_sel.size) { toast(t('toast.selFirst')); return; }
   const ids = Array.from(_sel);
   store.convs = store.convs.filter((c) => !_sel.has(c.id));
   if (ids.includes(store.curId)) store.curId = store.convs.length ? store.convs[0].id : null;
@@ -680,7 +681,7 @@ $('#themeBtn').addEventListener('click', () => {
 $('#clearBtn').addEventListener('click', () => {
   const c = cur();
   if (!c || !c.messages.length) return;
-  c.messages = []; c.title = '新对话';
+  c.messages = []; c.title = t('conv.untitled');
   save(); renderConvs(); renderChat(); renderTop();
 });
 
@@ -702,7 +703,7 @@ function openSrcPanel(list, btn) {
   if (!p || !l) return;
   l.innerHTML = '<div class="srcnum">' + t('src.count', { n: list.length }) + '</div>' + list.map((r) => {
     return '<a class="srcitem" href="' + esc(r.url || '#') + '" target="_blank" rel="noreferrer">' +
-      '<div class="siteline"><span class="sitesite">' + esc(r.site || '网页') + '</span>' +
+      '<div class="siteline"><span class="sitesite">' + esc(r.site || t('src.web')) + '</span>' +
       (r.date ? '<span class="sitedate">' + esc(r.date) + '</span>' : '') +
       '</div><div class="sitetitle">' + esc(r.title || '') + '</div>' +
       (r.summary ? '<div class="sitesum">' + esc(r.summary) + '</div>' : '') + '</a>';
@@ -753,7 +754,7 @@ $('#ctxSel').addEventListener('change', () => {
   const v = parseInt($('#ctxSel').value, 10);
   store.ctx = isFinite(v) && v >= 0 ? v : 12;
   save();
-  toast(store.ctx ? '上下文：只带最近 ' + store.ctx + ' 轮' : '上下文：全部带上');
+  toast(store.ctx ? t('toast.ctxN', { n: store.ctx }) : t('toast.ctxAll'));
 });
 $$('.tc').forEach((b) => b.addEventListener('click', () => {
   store.theme = b.dataset.themeVal;
@@ -779,14 +780,14 @@ async function testKey(silent, key, base) {
   key = key === undefined ? store.key : key;
   base = base || store.base;
   const el = $('#testState');
-  if (!key) { el.style.color = '#e5484d'; el.textContent = '请先填写 Key'; return; }
+  if (!key) { el.style.color = '#e5484d'; el.textContent = t('gen.keyEmpty'); return; }
   el.style.color = 'var(--muted)';
-  el.textContent = '测试中…';
+  el.textContent = t('gen.testing');
   try {
     const res = await fetch(base.replace(/\/+$/, '') + '/models', { headers: { Authorization: 'Bearer ' + key } });
     if (res.ok) {
       el.style.color = 'var(--accent)';
-      el.textContent = '✓ 连接成功，Key 可用';
+      el.textContent = '✓ ' + t('gen.testOk');
       store.key = key; store.base = base; save();
       fetchBalance(true);
     } else {
@@ -795,7 +796,7 @@ async function testKey(silent, key, base) {
     }
   } catch (e) {
     el.style.color = '#e5484d';
-    el.textContent = '连接失败：网络或跨域问题';
+    el.textContent = t('gen.testFail');
   }
 }
 
@@ -808,8 +809,8 @@ $('#msgWrap').addEventListener('click', (e) => {
   if (cb) {
     const code = cb.closest('.codebox').querySelector('code').textContent;
     copyText(code);
-    cb.textContent = '已复制';
-    setTimeout(() => { cb.textContent = '复制'; }, 1400);
+    cb.textContent = t('gen.copied');
+    setTimeout(() => { cb.textContent = t('gen.copy'); }, 1400);
     return;
   }
   const btn = e.target.closest('.act');
@@ -905,9 +906,9 @@ async function agCallModel(hist) {
 async function startAgentRun(workGoal) {
   const inWork = typeof workGoal === 'string' && workGoal.trim() !== '';
   const goal = inWork ? workGoal.trim() : ($('#agGoal').value || '').trim();
-  if (!goal) { toast('先写任务目标'); if ($('#agGoal')) $('#agGoal').focus(); return; }
-  if (!(store.key || '').trim()) { openSettings('填好 API Key 才能执行任务', 'general'); return; }
-  if (!window.orion || !window.orion.tool) { toast('任务代理需要在桌面客户端里运行'); return; }
+  if (!goal) { toast(t('toast.goalFirst')); if ($('#agGoal')) $('#agGoal').focus(); return; }
+  if (!(store.key || '').trim()) { openSettings(t('toast.needKeyTask'), 'general'); return; }
+  if (!window.orion || !window.orion.tool) { toast(t('toast.noDesktop')); return; }
   const perms = inWork ? (store.agPerms || 'workspace') : ($('#agPerms').value || 'workspace');
   store.agPerms = perms;
   const run = {
@@ -979,7 +980,7 @@ async function agentLoop(run) {
       save();
       if (run.status !== 'running') break;
       if (step === AG_MAX_STEPS - 1) {
-        agAddStep(run, 'err', '已达到 ' + AG_MAX_STEPS + ' 步上限，任务暂停。可以再说一句“继续”开新任务。');
+        agAddStep(run, 'err', t('toast.stepMax', { n: AG_MAX_STEPS }));
         run.status = 'stopped';
       }
     }
@@ -1012,7 +1013,7 @@ $('#agList').addEventListener('click', (e) => {
 });
 $('#agClear').addEventListener('click', () => {
   const done = store.tasks.filter((t) => t.status === 'done' || t.status === 'failed' || t.status === 'stopped').length;
-  if (!done) { toast('没有已结束的任务'); return; }
+  if (!done) { toast(t('toast.noFinished')); return; }
   store.tasks = store.tasks.filter((t) => t.status === 'running' || t.status === 'pending');
   save(); renderTasks();
 });
@@ -1055,27 +1056,27 @@ function __initOrion() {
     }).catch(() => {});
   }
   if (store.web) $('#webPill').classList.add('on');
-  if (store.key) fetchBalance(true); else if ($('#balState')) $('#balState').textContent = '未填 API Key，无法拉取';
+  if (store.key) fetchBalance(true); else if ($('#balState')) $('#balState').textContent = t('bal.nokey');
   autoHeight();
   if ($('#sendBtn')) $('#sendBtn').disabled = !$('#input').value.trim();
   $('#input').focus();
-  if (!store.key) setTimeout(() => openSettings('填好 API Key 就能开始聊了', 'general'), 700);
+  if (!store.key) setTimeout(() => openSettings(t('toast.needKeyStart'), 'general'), 700);
 }
 
 var HOME_MODELS = [
-  { v: 'deepseek-chat', n: 'DeepSeek V3', d: '通用对话、写作与轻量任务' },
-  { v: 'deepseek-reasoner', n: 'DeepSeek R1', d: '深度推理、多步分析与复杂任务' }
+  { v: 'deepseek-chat', n: 'DeepSeek V3', d: t('model.v3d') },
+  { v: 'deepseek-reasoner', n: 'DeepSeek R1', d: t('model.r1d') }
 ];
 var HOME_MODES = {
-  read: { n: '只读模式', d: '只能查看工作区，不做任何改动' },
-  workspace: { n: '标准模式', d: '可以在工作区内读写文件' },
-  full: { n: '完全访问', d: '可执行本机命令、操作桌面' }
+  read: { n: t('p.readN'), d: t('p.readD') },
+  workspace: { n: t('p.wsN'), d: t('p.wsD') },
+  full: { n: t('p.fullN'), d: t('p.fullD') }
 };
 
 function wsLabel(p) {
   if (!p) return t('work.defaultWs');
   var s = String(p).replace(/[\\/]+$/, '');
-  if (/^[A-Za-z]:$/.test(s)) return s + ' 盘';
+  if (/^[A-Za-z]:$/.test(s)) return t('path.drive', { s: s });
   var i = Math.max(s.lastIndexOf('\\'), s.lastIndexOf('/'));
   return i >= 0 ? s.slice(i + 1) : s;
 }
@@ -1124,7 +1125,7 @@ function menuItem(box, title, sub, on, cur) {
   if (cur) {
     var ck = document.createElement('span');
     ck.className = 'ock';
-    ck.textContent = '已选';
+    ck.textContent = t('menu.selected');
     it.appendChild(ck);
   }
   it.addEventListener('click', function () { menuClose(); on(); });
@@ -1161,7 +1162,7 @@ function renderWsList() {
     var b = document.createElement('button');
     b.className = 'wsitem' + ((store.workPath || '') === it.p ? ' on' : '');
     b.type = 'button';
-    b.title = it.p || '默认工作区';
+    b.title = it.p || t('work.defaultWs');
     b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3.6 7.6a1.8 1.8 0 0 1 1.8-1.8h4l1.8 2h7.4a1.8 1.8 0 0 1 1.8 1.8v7.6a1.8 1.8 0 0 1-1.8 1.8H5.4a1.8 1.8 0 0 1-1.8-1.8z"/></svg>';
     var sp = document.createElement('span');
     sp.className = 'wt';
@@ -1186,21 +1187,21 @@ function applyWork(p) {
   }
   if (p && window.orion && window.orion.setWork) {
     window.orion.setWork(p).then(function (r) {
-      if (!r || !r.ok) toast('切换工作区失败：' + ((r && r.msg) || '未知原因'));
-    }).catch(function () { toast('切换工作区失败'); });
+      if (!r || !r.ok) toast(t('toast.wsFail', { m: (r && r.msg) || t('m.net') }));
+    }).catch(function () { toast(t('toast.wsFail', { m: t('m.net') })); });
   }
 }
 
 function addWork() {
-  if (!window.orion || !window.orion.pickWork) { toast('当前环境不支持选择文件夹'); return; }
+  if (!window.orion || !window.orion.pickWork) { toast(t('toast.noPick')); return; }
   window.orion.pickWork().then(function (r) {
     if (!r || !r.ok || !r.path) return;
     var p = r.path;
     if (!store.spaces) store.spaces = [];
     if (store.spaces.indexOf(p) < 0) store.spaces.push(p);
     applyWork(p);
-    toast('已切换到 ' + wsLabel(p));
-  }).catch(function () { toast('选择文件夹失败'); });
+    toast(t('toast.wsSwitched', { p: wsLabel(p) }));
+  }).catch(function () { toast(t('toast.pickFail')); });
 }
 
 function renderModelPill() {
@@ -1228,7 +1229,7 @@ $('#modelPill').addEventListener('click', function () {
   openMenu($('#modelPill'), function (box) {
     var hd = document.createElement('div');
     hd.className = 'ohd';
-    hd.textContent = '选择模型';
+    hd.textContent = t('model.menu');
     box.appendChild(hd);
     HOME_MODELS.forEach(function (m) {
       menuItem(box, m.n, m.d, function () {
@@ -1246,7 +1247,7 @@ $('#modePill').addEventListener('click', function () {
   openMenu($('#modePill'), function (box) {
     var hd = document.createElement('div');
     hd.className = 'ohd';
-    hd.textContent = '权限模式（作用于工作任务）';
+    hd.textContent = t('perm.menu');
     box.appendChild(hd);
     Object.keys(HOME_MODES).forEach(function (k) {
       var m = HOME_MODES[k];
@@ -1266,11 +1267,11 @@ function openWsMenu(anchor) {
     hd.className = 'ohd';
     hd.textContent = t('work.area');
     box.appendChild(hd);
-    menuItem(box, t('work.defaultWs'), '保存在用户数据目录', function () { applyWork(''); }, !store.workPath);
+    menuItem(box, t('work.defaultWs'), t('menu.defaultSub'), function () { applyWork(''); }, !store.workPath);
     (store.spaces || []).forEach(function (p) {
       menuItem(box, wsLabel(p), p, function () { applyWork(p); }, store.workPath === p);
     });
-    menuItem(box, '选择文件夹…', '把本机任意目录设为工作区', addWork, false);
+    menuItem(box, t('menu.pick'), t('menu.pickSub'), addWork, false);
   });
 }
 
@@ -1322,19 +1323,19 @@ function renderWorkList() {
   var sum = $('#wpSum');
   if (sum) {
     var done = all.filter(function (r) { return r.status === 'done'; }).length;
-    sum.textContent = all.length ? '共 ' + all.length + ' 个 · 完成 ' + done + ' 个' : '';
+    sum.textContent = all.length ? t('wp.sum', { n: all.length, d: done }) : '';
   }
   if (!runs.length) {
     box.innerHTML = '<div class="wempty">' + (all.length
-      ? '这个筛选下没有任务。'
-      : '还没有任务。写一句要它做的事，回车就开始。') + '</div>';
+      ? t('wp.noFilter')
+      : t('wp.none')) + '</div>';
     return;
   }
   box.innerHTML = '';
   runs.forEach(function (r) {
     var s = agStatus(r);
     var last = (r.steps || []).slice(-1)[0];
-    var meta = ((r.steps || []).length || 0) + ' 步 · ' + wPermName(r.perms) + (last ? ' · ' + String(last.text || '').replace(/\s+/g, ' ').slice(0, 80) : '');
+    var meta = t('wf.stepsN', { n: ((r.steps || []).length || 0) }) + ' · ' + wPermName(r.perms) + (last ? ' · ' + String(last.text || '').replace(/\s+/g, ' ').slice(0, 80) : '');
     var b = document.createElement('button');
     b.type = 'button';
     b.className = 'wcard';
@@ -1374,7 +1375,7 @@ function openTaskDetail(id) {
 
 $('#wpRun').addEventListener('click', function () {
   var g = ($('#wpGoal').value || '').trim();
-  if (!g) { toast('先写任务目标'); $('#wpGoal').focus(); return; }
+  if (!g) { toast(t('toast.goalFirst')); $('#wpGoal').focus(); return; }
   $('#agGoal').value = g;
   $('#agPerms').value = store.agPerms || 'workspace';
   $('#wpGoal').value = '';
@@ -1400,10 +1401,10 @@ $$('.wtab').forEach(function (b) {
 
 $('#wpClear').addEventListener('click', function () {
   var done = store.tasks.filter(function (t) { return t.status === 'done' || t.status === 'failed' || t.status === 'stopped'; }).length;
-  if (!done) { toast('没有已结束的任务'); return; }
+  if (!done) { toast(t('toast.noFinished')); return; }
   store.tasks = store.tasks.filter(function (t) { return t.status === 'running' || t.status === 'pending'; });
   save(); renderTasks();
-  toast('已清除 ' + done + ' 个已结束任务');
+  toast(t('toast.clearedN', { n: done }));
 });
 
 __initOrion();

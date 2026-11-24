@@ -26,7 +26,7 @@ try {
     }
     return {
       id: t.id || ('r' + Math.random().toString(36).slice(2, 8)),
-      goal: t.title || '未命名任务',
+      goal: t.title || window.t('ui.untitledTask'),
       status: t.done ? 'done' : 'pending',
       ts: t.ts || Date.now(),
       perms: 'workspace', steps: [], hist: [],
@@ -60,7 +60,7 @@ try {
       store.convs = arr.map(function (c) {
         return {
           id: c.id || ('c' + Math.random().toString(36).slice(2, 8)),
-          title: c.title || '新对话',
+          title: c.title || window.t('conv.untitled'),
           ts: c.ts || c.time || Date.now(),
           messages: (c.messages || []).map(function (m) {
             return { role: m.role, content: m.content || '', reasoning: m.reasoning || '', usage: m.usage || null, elapsed: m.elapsed || 0, stopped: !!m.stopped };
@@ -74,14 +74,14 @@ try {
 } catch (e) {}
 function save() { try { localStorage.setItem(LSKEY, JSON.stringify(store)); } catch (e) {} }
 
-const MODEL_LABEL = { 'deepseek-chat': '对话模型', 'deepseek-reasoner': '思考模型' };
+const MODEL_LABEL = { 'deepseek-chat': window.t('model.chatLabel'), 'deepseek-reasoner': window.t('model.thinkLabel') };
 const busy = { on: false, ctrl: null };
 
 function cur() { return store.convs.find((c) => c.id === store.curId) || null; }
 function ensureConv() {
   let c = cur();
   if (!c) {
-    c = { id: 'c' + Date.now().toString(36), title: '新对话', ts: Date.now(), messages: [], kind: store.pendingKind || 'chat' };
+    c = { id: 'c' + Date.now().toString(36), title: window.t('conv.untitled'), ts: Date.now(), messages: [], kind: store.pendingKind || 'chat' };
     store.convs.unshift(c);
     store.curId = c.id;
   }
@@ -228,7 +228,7 @@ function md(text) {
     if (fm) {
       const f = fences[+fm[1]];
       out += '<div class="codebox"><div class="codehead"><span class="lang">' + esc(f.lang || 'text') +
-        '</span><button class="cbtn">复制</button></div><pre class="codepre"><code>' + esc(f.body) + '</code></pre></div>';
+        '</span><button class="cbtn">' + window.t('gen.copy') + '</button></div><pre class="codepre"><code>' + esc(f.body) + '</code></pre></div>';
       i++; continue;
     }
     if (!line.trim()) { i++; continue; }

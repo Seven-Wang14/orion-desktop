@@ -39,10 +39,10 @@ function renderConvs() {
   const row = (c) => '<div class="item' + (c.id === store.curId ? ' active' : '') + (msMode ? ' selmode' : '') +
     (_sel.has(c.id) ? ' on' : '') + '" data-id="' + c.id + '">' +
     '<span class="chk">' + ICON.check + '</span>' +
-    '<span class="t">' + esc((c.title || '新对话').slice(0, 40)) + '</span>' +
-    '<button class="more" data-more="' + c.id + '" title="更多">' + ICON.dots + '</button></div>';
+    '<span class="t">' + esc((c.title || t('conv.untitled')).slice(0, 40)) + '</span>' +
+    '<button class="more" data-more="' + c.id + '" title="' + t('ui.more') + '">' + ICON.dots + '</button></div>';
   if (pinned.length) {
-    html += '<div class="grp"><span>置顶</span></div>';
+    html += '<div class="grp"><span>' + t('ui.pin') + '</span></div>';
     pinned.forEach((c) => { html += row(c); });
   }
   let last = '';
@@ -65,11 +65,11 @@ function openConvMenu(id, btn) {
     '<button class="mi' + (cls || '') + '" data-m="' + act + '">' + ICON[icon] + '<span>' + label + '</span></button>';
   const m = $('#cmenu');
   m.innerHTML =
-    mk('rename', 'pen', '重命名') +
-    (c.pin ? mk('pin', 'pinOff', '取消置顶') : mk('pin', 'pin', '置顶')) +
-    mk('share', 'shareArrow', '分享') +
-    mk('multi', 'checklist', '多选') +
-    mk('del', 'trash', '删除', ' danger');
+    mk('rename', 'pen', t('ui.rename')) +
+    (c.pin ? mk('pin', 'pinOff', t('ui.unpin')) : mk('pin', 'pin', t('ui.pin'))) +
+    mk('share', 'shareArrow', t('ui.share')) +
+    mk('multi', 'checklist', t('ui.multi')) +
+    mk('del', 'trash', t('ms.del'), ' danger');
   m.hidden = false;
   const r = btn.getBoundingClientRect();
   const w = m.offsetWidth, h = m.offsetHeight;
@@ -88,13 +88,13 @@ function openConvMenu(id, btn) {
     closeConvMenu();
     if (!conv) return;
     if (act === 'rename') {
-      const t = prompt('重命名对话', conv.title || '新对话');
-      if (t && t.trim()) { conv.title = t.trim().slice(0, 60); save(); renderConvs(); renderTop(); }
+      const nm = prompt(t('ui.renameQ'), conv.title || t('conv.untitled'));
+      if (nm && nm.trim()) { conv.title = nm.trim().slice(0, 60); save(); renderConvs(); renderTop(); }
     } else if (act === 'pin') {
       conv.pin = !conv.pin; save(); renderConvs();
     } else if (act === 'share') {
       copyText(convShareText(conv));
-      toast('对话已复制，可直接粘贴分享');
+      toast(t('ui.copied'));
     } else if (act === 'multi') {
       msMode = true; _sel.clear(); renderConvs();
     } else if (act === 'del') {
@@ -107,8 +107,8 @@ function openConvMenu(id, btn) {
 }
 
 function convShareText(c) {
-  return '# ' + (c.title || '新对话') + '\n\n' +
-    c.messages.map((m) => (m.role === 'user' ? '我：' : 'Orion：') + (m.content || '')).join('\n\n');
+  return '# ' + (c.title || t('conv.untitled')) + '\n\n' +
+    c.messages.map((m) => (m.role === 'user' ? t('ui.me') + ': ' : 'Orion: ') + (m.content || '')).join('\n\n');
 }
 
 function toast(t) {
@@ -143,14 +143,14 @@ function attChip(a, removable, idx) {
   if (a.kind === 'image' && a.url) {
     const im = document.createElement('img');
     im.src = a.url;
-    im.alt = a.name || '图片';
+    im.alt = a.name || t('ui.img');
     cv.appendChild(im);
   } else {
     const dt = document.createElement('div');
     dt.className = 'dt';
     const dn = document.createElement('div');
     dn.className = 'dn';
-    dn.textContent = a.name || '文件';
+    dn.textContent = a.name || t('ui.file');
     dt.appendChild(dn);
     if (a.preview) {
       const dp = document.createElement('div');
@@ -160,7 +160,7 @@ function attChip(a, removable, idx) {
     }
     const dm = document.createElement('div');
     dm.className = 'dm';
-    dm.textContent = (a.ext ? a.ext.toUpperCase() : '文件') + (a.size ? ' ' + fmtSize(a.size) : '');
+    dm.textContent = (a.ext ? a.ext.toUpperCase() : t('ui.file')) + (a.size ? ' ' + fmtSize(a.size) : '');
     dt.appendChild(dm);
     cv.appendChild(dt);
   }
@@ -169,7 +169,7 @@ function attChip(a, removable, idx) {
     const x = document.createElement('button');
     x.type = 'button';
     x.className = 'cx';
-    x.title = '移除';
+    x.title = t('ui.remove');
     x.setAttribute('data-x', String(idx));
     x.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
     el.appendChild(x);
@@ -197,7 +197,7 @@ function userNode(m) {
   el.appendChild(wrap);
   const av = document.createElement('span');
   av.className = 'av';
-  av.textContent = '我';
+  av.textContent = t('ui.me');
   el.appendChild(av);
   return el;
 }
@@ -207,12 +207,12 @@ function aiNode(m) {
   el.className = 'msg ai';
   el.innerHTML = '<div class="ai-body"></div>' +
     '<div class="acts" hidden>' +
-    '<button class="act" data-act="copy" title="复制">' + ICON.copy + '</button>' +
-    '<button class="act" data-act="speak" title="朗读回答">' + ICON.speak + '</button>' +
-    '<button class="act" data-act="regen" title="重新生成">' + ICON.regen + '</button>' +
-    '<button class="act" data-act="up" title="有帮助">' + ICON.up + '</button>' +
-    '<button class="act" data-act="down" title="没帮助">' + ICON.down + '</button>' +
-    '<button class="act" data-act="share" title="复制全文">' + ICON.share + '</button>' +
+    '<button class="act" data-act="copy" title="' + t('gen.copy') + '">' + ICON.copy + '</button>' +
+    '<button class="act" data-act="speak" title="' + t('ui.speak') + '">' + ICON.speak + '</button>' +
+    '<button class="act" data-act="regen" title="' + t('ui.regen') + '">' + ICON.regen + '</button>' +
+    '<button class="act" data-act="up" title="' + t('ui.up') + '">' + ICON.up + '</button>' +
+    '<button class="act" data-act="down" title="' + t('ui.down') + '">' + ICON.down + '</button>' +
+    '<button class="act" data-act="share" title="' + t('ui.shareFull') + '">' + ICON.share + '</button>' +
     '<span class="umeta"></span></div>';
   fillAI(el, m, false);
   return el;
@@ -234,11 +234,11 @@ function fillAI(el, m, streaming) {
     const secs = Math.max(1, m.elapsed || 0);
     const st = think.querySelector('.stxt');
     if (streaming && !m.content) {
-      st.textContent = '正在思考…';
+      st.textContent = t('ui.thinkNow');
       think.classList.add('running');
       think.open = true;
     } else {
-      st.textContent = '已思考（用时 ' + secs + ' 秒）';
+      st.textContent = t('ui.thoughtDone', { s: secs });
       think.classList.remove('running');
       if (m.content) think.open = false;
     }
@@ -258,7 +258,7 @@ function fillAI(el, m, streaming) {
   if (m.stopped && !el.querySelector('.chipstop')) {
     const cs = document.createElement('div');
     cs.className = 'chipstop';
-    cs.innerHTML = ICON.stopdot + '已停止';
+    cs.innerHTML = ICON.stopdot + t('ui.stopped');
     el.insertBefore(cs, el.querySelector('.think') || box);
   }
   if (!streaming) {
@@ -267,7 +267,7 @@ function fillAI(el, m, streaming) {
     if (m.usage) {
       um.textContent = (m.elapsed ? m.elapsed + 's · ' : '') + (m.usage.prompt_tokens || 0) + ' in / ' + (m.usage.completion_tokens || 0) + ' out';
     } else if (m.elapsed) {
-      um.textContent = '用时 ' + m.elapsed + 's';
+      um.textContent = t('ui.elapsed', { s: m.elapsed });
     }
   }
 }
@@ -301,8 +301,14 @@ function renderChat() {
 
 function fmtTok(n) {
   if (!isFinite(n) || n <= 0) return '0';
-  if (n >= 1e8) return (n / 1e8).toFixed(2) + ' 亿';
-  if (n >= 1e4) return (n / 1e4 >= 100 ? Math.round(n / 1e4) : (n / 1e4).toFixed(1)) + ' 万';
+  var cjk = (LANG === 'zh' || LANG === 'zh-TW' || LANG === 'ja' || LANG === 'ko');
+  if (cjk) {
+    if (n >= 1e8) return (n / 1e8).toFixed(2) + ' ' + (LANG === 'ko' ? '억' : (LANG === 'ja' ? '億' : '亿'));
+    if (n >= 1e4) return (n / 1e4 >= 100 ? Math.round(n / 1e4) : (n / 1e4).toFixed(1)) + ' ' + (LANG === 'ko' ? '만' : '万');
+  } else {
+    if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+    if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+  }
   return Math.round(n).toLocaleString('en-US');
 }
 function tokenOf(yuan) { return (Math.max(0, yuan) / store.rate) * 1e6; }
@@ -316,15 +322,15 @@ function fmtTime(ts) {
 
 function renderQuota() {
   const b = store.balance || 0;
-  const txt = '约 ' + fmtTok(tokenOf(b)) + ' tokens';
+  const txt = t('tk.approx', { n: fmtTok(tokenOf(b)) });
   $('#qMoney').textContent = '¥ ' + b.toFixed(2);
   $('#qTok').textContent = txt;
   $('#qTok').title = Math.round(tokenOf(b)).toLocaleString('en-US') + ' tokens';
   if ($('#balNum')) $('#balNum').textContent = b.toFixed(2);
   if ($('#balTok')) $('#balTok').textContent = txt;
-  if ($('#balTime')) $('#balTime').textContent = store.balTs ? '更新于 ' + fmtTime(store.balTs) : '未同步';
+  if ($('#balTime')) $('#balTime').textContent = store.balTs ? t('tk.updated', { t: fmtTime(store.balTs) }) : t('tk.notSync');
   const info = store.balInfo;
-  if (info) $('#apiBtn').title = '充值余额 ¥' + (info.topped || 0).toFixed(2) + ' · 赠送余额 ¥' + (info.granted || 0).toFixed(2);
+  if (info) $('#apiBtn').title = t('tk.balTitle', { a: (info.topped || 0).toFixed(2), b: (info.granted || 0).toFixed(2) });
 }
 
 
@@ -332,21 +338,21 @@ async function fetchBalance(silent) {
   const st = $('#balState'), btn = $('#balSyncBtn');
   const key = (store.key || '').trim();
   if (!key) {
-    if (st) { st.style.color = 'var(--muted)'; st.textContent = '未填 API Key，无法拉取'; }
+    if (st) { st.style.color = 'var(--muted)'; st.textContent = t('bal.nokey'); }
     return null;
   }
-  if (st) { st.style.color = 'var(--muted)'; st.textContent = '同步中…'; }
+  if (st) { st.style.color = 'var(--muted)'; st.textContent = t('tk.syncing'); }
   if (btn) btn.disabled = true;
   try {
     const base = (store.base || 'https://api.deepseek.com').replace(/\/+$/, '');
     const res = await fetch(base + '/user/balance', { headers: { Authorization: 'Bearer ' + key } });
-    if (!res.ok) throw new Error(res.status === 401 ? 'Key 无效' : 'HTTP ' + res.status);
+    if (!res.ok) throw new Error(res.status === 401 ? t('ui.keyInvalid') : 'HTTP ' + res.status);
     const j = await res.json();
     const arr = j.balance_infos || [];
     const info = arr.find((x) => x.currency === 'CNY') || arr[0];
-    if (!info) throw new Error('接口未返回余额');
+    if (!info) throw new Error(t('ui.noBal'));
     const bal = parseFloat(info.total_balance);
-    if (!isFinite(bal)) throw new Error('余额字段异常');
+    if (!isFinite(bal)) throw new Error(t('ui.balField'));
     store.balance = bal;
     store.balInfo = {
       granted: parseFloat(info.granted_balance || 0) || 0,
@@ -355,10 +361,10 @@ async function fetchBalance(silent) {
     };
     store.balTs = Date.now();
     save(); renderQuota();
-    if (st) { st.style.color = 'var(--accent)'; st.textContent = '已同步 ' + fmtTime(store.balTs); }
+    if (st) { st.style.color = 'var(--accent)'; st.textContent = t('tk.synced', { t: fmtTime(store.balTs) }); }
     return bal;
   } catch (e) {
-    if (st) { st.style.color = '#e5484d'; st.textContent = '同步失败：' + (e.message || '网络错误'); }
+    if (st) { st.style.color = '#e5484d'; st.textContent = t('tk.syncFail', { m: e.message || t('err.net') }); }
     return null;
   } finally {
     if (btn) btn.disabled = false;
@@ -425,8 +431,8 @@ let agExpanded = {};
 let agWork = 'workspace';
 
 function agStatus(r) {
-  const map = { running: ['执行中', 'run'], done: ['已完成', 'done'], failed: ['失败', 'err'], stopped: ['已停止', 'err'], pending: ['待执行', ''] };
-  return map[r.status] || ['待执行', ''];
+  const map = { running: [t('st.run'), 'run'], done: [t('st.done'), 'done'], failed: [t('st.fail'), 'err'], stopped: [t('st.stop'), 'err'], pending: [t('st.wait'), ''] };
+  return map[r.status] || [t('st.wait'), ''];
 }
 function agBadge() {
   const n = store.tasks.filter((t) => t.status === 'running' || t.status === 'pending').length;
@@ -443,12 +449,12 @@ function agTime(ts) {
   return d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate();
 }
 function agStepHTML(s) {
-  const k = { think: '思考', tool: '工具', obs: '结果', err: '错误', final: '完成' }[s.kind] || '信息';
+  const k = s.kind === 'think' ? t('k.think') : s.kind === 'tool' ? t('k.tool') : s.kind === 'obs' ? t('k.obs') : s.kind === 'err' ? t('k.err') : s.kind === 'final' ? t('k.final') : t('k.info');
   const cls = s.kind === 'obs' ? '' : s.kind;
   let v = esc(s.text || '');
   if (s.kind === 'tool' || s.kind === 'obs' || s.kind === 'err') v = '<pre>' + v + '</pre>';
   else v = '<span>' + v + '</span>';
-  if (s.image) v += '<img class="thumb" src="' + s.image + '" alt="截屏">';
+  if (s.image) v += '<img class="thumb" src="' + s.image + '" alt="' + t('tool.screenshot') + '">';
   return '<div class="agstep ' + cls + '"><span class="k">' + k + '</span><div class="v">' + v + '</div></div>';
 }
 function renderTasks() {
@@ -456,11 +462,11 @@ function renderTasks() {
   if (!list) return;
   const runs = store.tasks.slice().sort((a, b) => b.ts - a.ts);
   const running = runs.filter((r) => r.status === 'running').length;
-  $('#taskStat').textContent = running ? '正在执行 ' + running + ' 个任务' : '';
-  $('#taskSum').textContent = runs.length ? '共 ' + runs.length + ' 个任务 · ' + runs.filter((r) => r.status === 'done').length + ' 个已完成' : '还没有任务';
+  $('#taskStat').textContent = running ? t('ag.runN', { n: running }) : '';
+  $('#taskSum').textContent = runs.length ? t('ag.sumN', { n: runs.length, d: runs.filter((r) => r.status === 'done').length }) : t('nav.newTask');
   agBadge();
   if (!runs.length) {
-    list.innerHTML = '<div class="agemit">还没有任务。写一句目标，选好权限，点“开始执行”。</div>';
+    list.innerHTML = '<div class="agemit">' + t('ag.empty') + '</div>';
     if (typeof renderWorkList === 'function') renderWorkList();
     return;
   }
@@ -469,14 +475,14 @@ function renderTasks() {
     const open = !!agExpanded[r.id] || r.status === 'running';
     const body = open ? ('<div class="agbody">' +
       (r.steps || []).map(agStepHTML).join('') +
-      (r.status === 'running' ? '<div class="agrow"><span class="sp"></span><button class="btn ghost sm" data-ag="stop" data-id="' + r.id + '">停止任务</button></div>' : '') +
+      (r.status === 'running' ? '<div class="agrow"><span class="sp"></span><button class="btn ghost sm" data-ag="stop" data-id="' + r.id + '">' + t('ag.stop') + '</button></div>' : '') +
       '</div>') : '';
     return '<div class="agcard' + (r.status === 'running' ? ' run' : '') + '" data-id="' + r.id + '">' +
       '<div class="aghead" data-ag="toggle" data-id="' + r.id + '">' +
       '<span class="agst ' + cls + '">' + label + '</span>' +
       '<span class="aggoal">' + esc(r.goal || '') + '</span>' +
       '<span class="agtime">' + agTime(r.ts) + '</span>' +
-      '<button class="agx" data-ag="del" data-id="' + r.id + '" title="删除">' + ICON.trash + '</button>' +
+      '<button class="agx" data-ag="del" data-id="' + r.id + '" title="' + t('ms.del') + '">' + ICON.trash + '</button>' +
       '</div>' + body + '</div>';
   }).join('');
   if (typeof renderWorkList === 'function') renderWorkList();
