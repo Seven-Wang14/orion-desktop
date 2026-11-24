@@ -11,7 +11,12 @@ const BASE = app.isPackaged ? path.dirname(process.execPath) : __dirname;
 
 const DATA = path.join(app.getPath('appData'), 'Orion');
 const WORK_DEFAULT = path.join(DATA, 'workspace');
+const WORK_FILE = path.join(DATA, 'workdir.txt');
 let activeWork = WORK_DEFAULT;
+try {
+  const saved = fs.readFileSync(WORK_FILE, 'utf8').trim();
+  if (saved && path.isAbsolute(saved)) activeWork = saved;
+} catch (e) {}
 const ICO = path.join(BASE, 'Orion.ico');
 try { fs.mkdirSync(DATA, { recursive: true }); } catch (e) {}
 try { fs.mkdirSync(activeWork, { recursive: true }); } catch (e) {}
@@ -85,6 +90,152 @@ function runPwsh(command, { cwd, timeoutMs = 30000, runId } = {}) {
 }
 
 const DANGER = /(shutdown|Restart-Computer|Stop-Computer|Format-Volume|Clear-Disk|Initialize-Disk|reg\s+delete|Remove-Item[\s\S]*-Recurse|rmdir\s+\/s|rd\s+\/s|del\s+\/[fsq]|cipher\s+\/w|bcdedit|diskpart|New-Service|Set-MpPreference|Disable-WindowsOptionalFeature)/i;
+
+/* ---------- 语音缓存：合成过就存一份，别再花钱 ---------- */
+const TTS_DIR = path.join(DATA, 'tts');
+const TTS_KEEP = 40;
+
+function ttsPrune() {
+  try {
+    const files = fs.readdirSync(TTS_DIR).filter((f) => f.endsWith('.wav'));
+    if (files.length <= TTS_KEEP) return;
+    const st = files.map((f) => ({ f, m: fs.statSync(path.join(TTS_DIR, f)).mtimeMs }))
+      .sort((a, b) => a.m - b.m);
+    for (const x of st.slice(0, st.length - TTS_KEEP)) { try { fs.rmSync(path.join(TTS_DIR, x.f), { force: true }); } catch (e) {} }
+  } catch (e) {}
+}
+
+ipcMain.handle('orion:ttsCache', (e, { key, data } = {}) => {
+  const k = String(key || '').replace(/[^\w.-]/g, '');
+  if (!k) return { ok: false, msg: '缺少缓存键' };
+  const f = path.join(TTS_DIR, k + '.wav');
+  try {
+    if (data) {
+      fs.mkdirSync(TTS_DIR, { recursive: true });
+      fs.writeFileSync(f, Buffer.from(String(data), 'base64'));
+      ttsPrune();
+      return { ok: true, size: fs.statSync(f).size };
+    }
+    if (!fs.existsSync(f)) return { ok: false };
+    return { ok: true, data: fs.readFileSync(f).toString('base64'), size: fs.statSync(f).size };
+  } catch (er) { return { ok: false, msg: er.message }; }
+});
+
+/* ---------- 2.4.0 改动闸门：写文件前先给看 ---------- */
+const UNDO_DIR = path.join(DATA, 'undo');
+const pendingChg = new Map();
+const autoApply = new Set();
+let undoSeq = 0;
+
+function relOf(abs) {
+  const rel = path.relative(activeWork, abs);
+  return rel && !path.isAbsolute(rel) ? rel.split(path.sep).join('\\') : abs;
+}
+function lineCount(t) { return t == null || t === '' ? 0 : String(t).split('\n').length; }
+
+function diffCounts(before, after) {
+  const a = before == null ? '' : String(before);
+  const b = after == null ? '' : String(after);
+  if (before == null) return { add: lineCount(b), del: 0 };
+  const A = a.split('\n'), B = b.split('\n');
+  const n = A.length, m = B.length;
+  if (n * m > 2000000) return { add: Math.max(0, m - n), del: Math.max(0, n - m) };
+  const w = m + 1;
+  const dp = new Int32Array((n + 1) * w);
+  for (let i = n - 1; i >= 0; i--) {
+    for (let j = m - 1; j >= 0; j--) {
+      dp[i * w + j] = A[i] === B[j] ? dp[(i + 1) * w + j + 1] + 1
+        : Math.max(dp[(i + 1) * w + j], dp[i * w + j + 1]);
+    }
+  }
+  const lcs = dp[0];
+  return { add: m - lcs, del: n - lcs };
+}
+
+async function stageEdit(name, args) {
+  const fp = args.file_path || '';
+  if (!fp) return { ok: false, msg: '缺少 file_path' };
+  const abs = path.resolve(activeWork, fp);
+  let before = null;
+  try {
+    const st = await fs.promises.stat(abs);
+    if (st.isFile()) before = await fs.promises.readFile(abs, 'utf8');
+  } catch (e) { before = null; }
+  let after = '';
+  if (name === 'write') after = args.content || '';
+  else {
+    const oldS = args.old_string || '', newS = args.new_string || '';
+    if (!oldS) return { ok: false, msg: 'old_string 不能为空' };
+    const text = before == null ? '' : before;
+    const cnt = text.split(oldS).length - 1;
+    if (cnt === 0) return { ok: false, msg: '未找到待替换内容' };
+    if (cnt > 1 && !args.replace_all) return { ok: false, msg: '匹配到 ' + cnt + ' 处，请提供更长的上下文或设 replace_all' };
+    after = args.replace_all ? text.split(oldS).join(newS) : text.replace(oldS, newS);
+  }
+  if (before !== null && before === after) return { ok: true, noop: true };
+  return { ok: true, item: { abs, rel: relOf(abs), before, after, kind: before === null ? '新建' : (name === 'write' ? '覆盖' : '编辑') } };
+}
+
+function commitItems(items, runId) {
+  const seq = String(++undoSeq).padStart(3, '0') + '-' + Date.now().toString(36);
+  const manifest = { seq, ts: Date.now(), runId: runId || '', work: activeWork, files: [] };
+  try { fs.mkdirSync(UNDO_DIR, { recursive: true }); } catch (e) {}
+  for (const it of items) {
+    try { fs.mkdirSync(path.dirname(it.abs), { recursive: true }); } catch (e) {}
+    const idx = manifest.files.length;
+    let bak = '';
+    if (it.before != null) {
+      bak = path.join(UNDO_DIR, seq + '-' + idx + '.bak');
+      try { fs.writeFileSync(bak, it.before, 'utf8'); } catch (e) { bak = ''; }
+    }
+    fs.writeFileSync(it.abs, it.after, 'utf8');
+    manifest.files.push({ abs: it.abs, existed: it.before != null, bak });
+  }
+  try { fs.writeFileSync(path.join(UNDO_DIR, seq + '.json'), JSON.stringify(manifest), 'utf8'); } catch (e) {}
+  return manifest;
+}
+
+function askDiff(sender, runId, card, batch) {
+  return new Promise((resolve) => {
+    const tmr = setTimeout(() => {
+      if (!pendingChg.has(runId)) return;
+      pendingChg.delete(runId);
+      resolve('timeout');
+    }, 120000);
+    pendingChg.set(runId, { card, batch, resolve, timer: tmr });
+    try { sender.send('orion:diff', { runId, card }); } catch (e) {}
+  });
+}
+
+ipcMain.handle('orion:diffApply', (e, { runId, act }) => {
+  const p = pendingChg.get(runId);
+  if (!p) return { ok: false, msg: '没有待确认的改动' };
+  pendingChg.delete(runId);
+  clearTimeout(p.timer);
+  if (act === 'cancel') p.resolve('cancel');
+  else if (act === 'all') p.resolve('all');
+  else p.resolve('apply');
+  return { ok: true };
+});
+
+ipcMain.handle('orion:undo', (e, { seq }) => {
+  let manifest = null;
+  try {
+    const files = fs.readdirSync(UNDO_DIR).filter((f) => /^\d{3}-.+\.json$/.test(f)).sort();
+    const pick = seq ? files.find((f) => f.indexOf(String(seq)) === 0) : files[files.length - 1];
+    if (pick) manifest = JSON.parse(fs.readFileSync(path.join(UNDO_DIR, pick), 'utf8'));
+  } catch (er) {}
+  if (!manifest) return { ok: false, msg: '没有可撤销的快照' };
+  let n = 0, bad = [];
+  for (const f of manifest.files || []) {
+    try {
+      if (!f.existed) { fs.rmSync(f.abs, { force: true }); n++; }
+      else if (f.bak && fs.existsSync(f.bak)) { fs.writeFileSync(f.abs, fs.readFileSync(f.bak, 'utf8'), 'utf8'); n++; }
+    } catch (er) { bad.push(path.basename(f.abs)); }
+  }
+  try { fs.renameSync(path.join(UNDO_DIR, manifest.seq + '.json'), path.join(UNDO_DIR, manifest.seq + '.undone')); } catch (er) {}
+  return { ok: true, n, bad: bad.join('、'), msg: '已恢复 ' + n + ' 个文件' };
+});
 
 async function toolRead(args) {
   const p = path.resolve(activeWork, args.file_path || '');
@@ -169,6 +320,13 @@ Add-Type -AssemblyName System.Windows.Forms
 `;
 
 ipcMain.handle('orion:info', () => ({ work: activeWork, pwsh: PWSH, version: app.getVersion() }));
+ipcMain.on('orion:win', (e, act) => {
+  const w = BrowserWindow.fromWebContents(e.sender);
+  if (!w) return;
+  if (act === 'min') w.minimize();
+  else if (act === 'max') { if (w.isMaximized()) w.unmaximize(); else w.maximize(); }
+  else if (act === 'close') w.close();
+});
 
 ipcMain.handle('orion:pickWork', async () => {
   const r = await dialog.showOpenDialog(win, {
@@ -185,12 +343,15 @@ ipcMain.handle('orion:setWork', (e, { dir }) => {
   try {
     if (!p || !fs.existsSync(p) || !fs.statSync(p).isDirectory()) return { ok: false, msg: '目录不存在' };
     activeWork = p;
+    try { fs.writeFileSync(WORK_FILE, p, 'utf8'); } catch (er) {}
     return { ok: true, path: activeWork };
   } catch (er) { return { ok: false, msg: er.message }; }
 });
 
 ipcMain.handle('orion:abort', async (e, { runId }) => {
   aborted.add(runId);
+  const p = pendingChg.get(runId);
+  if (p) { pendingChg.delete(runId); clearTimeout(p.timer); p.resolve('cancel'); }
   const set = children.get(runId);
   if (set) for (const c of set) { try { spawn(TASKKILL, ['/PID', String(c.pid), '/T', '/F'], { windowsHide: true }); } catch (er) {} }
   return { ok: true };
@@ -212,7 +373,26 @@ ipcMain.handle('orion:tool', async (e, { runId, name, args }) => {
     }
     if (name === 'write' || name === 'edit') {
       if (jailed(args.file_path)) return out(false, '[拒绝] 只能写工作区文件。');
-      return out(true, name === 'write' ? await toolWrite(args) : await toolEdit(args));
+      const st = await stageEdit(name, args);
+      if (!st.ok) return out(false, st.msg);
+      if (st.noop) return out(true, '内容没有变化，未写入');
+      const it = st.item;
+      const dc = diffCounts(it.before, it.after);
+      const card = { path: it.rel, kind: it.kind, add: dc.add, del: dc.del, lines: lineCount(it.after) };
+      if (autoApply.has(runId)) {
+        const mf = commitItems([it], runId);
+        return out(true, '已写入 ' + it.abs + '（+' + dc.add + ' −' + dc.del + '）', { diff: [card], applied: true, undo: mf.seq });
+      }
+      const decision = await askDiff(e.sender, runId, card, [it]);
+      if (decision === 'cancel' || decision === 'timeout') {
+        return out(false, decision === 'timeout'
+          ? '等待确认超过 120 秒，已放弃写入 ' + it.rel
+          : '你取消了这次写入，' + it.rel + ' 没被改动', { diff: [card], applied: false });
+      }
+      if (decision === 'all') autoApply.add(runId);
+      const mf = commitItems([it], runId);
+      return out(true, '已写入 ' + it.abs + '（+' + dc.add + ' −' + dc.del + '，快照 ' + mf.seq + '，可撤销）',
+        { diff: [card], applied: true, undo: mf.seq });
     }
     if (name === 'list_dir') {
       if (jailed(args.path)) return out(false, '[拒绝] 只能列工作区目录。');
@@ -290,6 +470,9 @@ let win = null;
       width: 1200, height: 820, minWidth: 900, minHeight: 600,
       backgroundColor: '#ffffff',
       title: 'Orion',
+      frame: false,
+      roundedCorners: true,
+      hasShadow: true,
       icon: fs.existsSync(ICO) ? ICO : undefined,
       autoHideMenuBar: true,
       show: false,

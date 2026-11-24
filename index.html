@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="styles.css">
 </head><body>
 <div class="app">
+<div class="dragbar"></div>
 
   
   <aside class="side">
@@ -17,43 +18,49 @@
         <span class="bname">Orion AI</span>
       </div>
       <div class="side-tools">
-        <button class="ibtn" id="searchBtn" title="搜索对话">
+        <button class="ibtn" id="searchBtn" title="搜索对话" data-i18n-title="side.search">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
             <circle cx="11" cy="11" r="6.4"/><path d="M15.8 15.8L20 20"/>
           </svg>
         </button>
-        <button class="ibtn" id="themeBtn" title="切换深浅色">
+        <button class="ibtn" id="themeBtn" title="切换深浅色" data-i18n-title="side.theme">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
             <circle cx="12" cy="12" r="4.2"/><path d="M12 3v1.8M12 19.2V21M3 12h1.8M19.2 12H21M5.6 5.6l1.3 1.3M17.1 17.1l1.3 1.3M18.4 5.6l-1.3 1.3M6.9 17.1l-1.3 1.3"/>
+          </svg>
+        </button>
+        <button class="ibtn" id="setBtn" title="系统设置" data-i18n-title="side.settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+            <path d="M4 8h9M17.6 8H20M4 16h3.4M12 16h8"/>
+            <circle cx="15.2" cy="8" r="2.4"/><circle cx="9.6" cy="16" r="2.4"/>
           </svg>
         </button>
       </div>
     </div>
 
     <div class="sideacts">
-      <button class="navbtn on" id="newChatBtn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
-          <path d="M19.4 12.2a7.4 7.4 0 0 1-11 6.6L4.6 20l1.2-3.7A7.4 7.4 0 1 1 19.4 12.2z"/>
-        </svg>
-        新对话
-      </button>
       <button class="navbtn" id="workNewBtn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
           <path d="M4.6 18.4l.9-3.6 9-9a1.6 1.6 0 0 1 2.3 0l1.4 1.4a1.6 1.6 0 0 1 0 2.3l-9 9z"/>
         </svg>
-        新工作任务
+        <span data-i18n="nav.newTask">新工作任务</span>
+      </button>
+      <button class="navbtn on" id="newChatBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+          <path d="M19.4 12.2a7.4 7.4 0 0 1-11 6.6L4.6 20l1.2-3.7A7.4 7.4 0 1 1 19.4 12.2z"/>
+        </svg>
+        <span data-i18n="nav.newChat">新对话</span>
       </button>
     </div>
 
-    <div class="srchwrap" id="srchwrap"><input id="srch" placeholder="搜索对话…"></div>
+    <div class="srchwrap" id="srchwrap"><input id="srch" placeholder="搜索对话…" data-i18n-ph="side.search"></div>
 
     <div class="msbar" id="msbar" hidden>
       <span id="msCnt">已选 0 项</span>
-      <button class="msdel" id="msDel">删除</button>
-      <button class="mscancel" id="msCancel">取消</button>
+      <button class="msdel" id="msDel" data-i18n="ms.del">删除</button>
+      <button class="mscancel" id="msCancel" data-i18n="ms.cancel">取消</button>
     </div>
 
-    <div class="glab">项目</div>
+    <div class="glab" data-i18n="nav.projects">项目</div>
     <button class="navbtn sm" id="prjWork">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
         <path d="M3.6 7.6a1.8 1.8 0 0 1 1.8-1.8h4l1.8 2h7.4a1.8 1.8 0 0 1 1.8 1.8v7.6a1.8 1.8 0 0 1-1.8 1.8H5.4a1.8 1.8 0 0 1-1.8-1.8z"/>
@@ -61,7 +68,7 @@
       <span id="prjName">工作区</span>
     </button>
 
-    <div class="glab">最近</div>
+    <div class="glab" data-i18n="nav.recent">最近</div>
     <div class="side-body" id="convList"></div>
 
     
@@ -81,21 +88,12 @@
 
   
   <div class="main">
-    <div class="top">
-      <div class="topttl" id="topTitle"></div>
-      <div class="rt">
-        <button class="ibtn" id="clearBtn" title="清空当前对话">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
-            <path d="M4 7h16M9.5 7V5.2h5v1.8M6.6 7l.9 12.8h9l.9-12.8"/>
-          </svg>
-        </button>
-        <button class="ibtn" id="setBtn" title="系统设置">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
-            <circle cx="12" cy="12" r="3.1"/>
-            <path d="M12 3.6v2M12 18.4v2M3.6 12h2M18.4 12h2M6.1 6.1l1.4 1.4M16.5 16.5l1.4 1.4M17.9 6.1l-1.4 1.4M7.5 16.5L6.1 17.9"/>
-          </svg>
-        </button>
-      </div>
+    <div class="floatbar">
+      <button class="ibtn fbtn" id="clearBtn" title="清空当前对话" data-i18n-title="clear.chat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+          <path d="M4 7h16M9.5 7V5.2h5v1.8M6.6 7l.9 12.8h9l.9-12.8"/>
+        </svg>
+      </button>
     </div>
 
     <div class="hero" id="hero">
@@ -105,11 +103,16 @@
       </div>
     </div>
 
-    <div class="workpage" id="workPage">
+    <div class="chtop" id="chatTop">
+      <div class="chttl" id="chatTitle">新对话</div>
+      <div class="chtsub" data-i18n="chat.sub">AI 生成可能有误 请核实</div>
+    </div>
+
+    <div class="workpage" id="workPage" style="display:none">
       <div class="wpwrap">
         <div class="wphead">
-          <div class="wpttl">工作任务</div>
-          <div class="wpsub">本机代理在工作区里执行：读文件、跑命令、整理桌面，每一步都能看到</div>
+          <div class="wpttl" data-i18n="work.title">工作任务</div>
+          <div class="wpsub" data-i18n="work.sub">本机代理在工作区里执行：读文件、跑命令、整理桌面，每一步都能看到</div>
           <div class="wppills">
             <button class="selpill" id="wsPill">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
@@ -129,67 +132,85 @@
         </div>
 
         <div class="wpnew">
-          <textarea id="wpGoal" rows="2" placeholder="描述任务目标，例如：把桌面截图按日期重命名，归档到工作区"></textarea>
+          <textarea id="wpGoal" rows="2" placeholder="描述任务目标，例如：把桌面截图按日期重命名，归档到工作区" data-i18n-ph="work.goal"></textarea>
           <div class="wprow">
             <span class="wphint">工作区 <code id="wpWorkTxt">workspace</code></span>
             <span class="sp"></span>
-            <button class="wpgo" id="wpRun">开始执行</button>
+            <button class="wpgo" id="wpRun" data-i18n="work.start">开始执行</button>
           </div>
         </div>
 
         <div class="wptabs">
-          <button class="wtab on" data-wf="all">全部</button>
-          <button class="wtab" data-wf="running">进行中</button>
-          <button class="wtab" data-wf="done">已完成</button>
+          <button class="wtab on" data-wf="all" data-i18n="work.all">全部</button>
+          <button class="wtab" data-wf="running" data-i18n="work.running">进行中</button>
+          <button class="wtab" data-wf="done" data-i18n="work.done">已完成</button>
           <span class="sp"></span>
           <span class="wpsum" id="wpSum"></span>
-          <button class="wclear" id="wpClear">清除已完成</button>
+          <button class="wclear" id="wpClear" data-i18n="work.clearDone">清除已完成</button>
         </div>
 
         <div class="wplist" id="wpList"></div>
       </div>
     </div>
-
     <div class="chat" id="chat" style="display:none"><div class="inner" id="msgWrap"></div></div>
+
+    <div class="wview" id="wview" style="display:none">
+      <div class="wv-top">
+        <div class="wtabs">
+          <button data-wtab="dialog" class="on">对话</button>
+          <button data-wtab="trace">轨迹</button>
+        </div>
+        <div class="wstat" id="wstat"></div>
+      </div>
+      <div class="wbody" id="wbody"></div>
+      <div class="wfoot" id="wfoot" style="display:none">
+        <span id="wfSteps">步骤 0</span><span class="wfd2">·</span><span id="wfTools">工具 0 次</span>
+        <span class="wfsp"></span><span id="wfTok"></span>
+      </div>
+    </div>
 
     <div class="cwrap">
       <div class="composer">
         <div class="chips" id="chips"></div>
-        <textarea id="input" rows="1" placeholder="给 Orion AI 发送消息"></textarea>
+        <textarea id="input" rows="1" placeholder="给 Orion AI 发送消息" data-i18n-ph="comp.ph"></textarea>
         <div class="crow">
-          <button class="pill" id="thinkPill" title="用思考模型回答">
+          <button class="pill wspill" id="wspacePill" style="display:none" title="选择工作区">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3.6 7.6a1.8 1.8 0 0 1 1.8-1.8h4l1.8 2h7.4a1.8 1.8 0 0 1 1.8 1.8v7.6a1.8 1.8 0 0 1-1.8 1.8H5.4a1.8 1.8 0 0 1-1.8-1.8z"/></svg>
+            <span id="wspacePillTxt">工作区内修改</span>
+          </button>
+          <button class="pill" id="thinkPill" title="用思考模型回答" data-i18n-title="comp.thinkTip">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round">
               <path d="M12 3.4l2.1 5.9 5.9 2.1-5.9 2.1-2.1 5.9-2.1-5.9L4 11.4l5.9-2.1z"/>
             </svg>
-            深度思考
+            <span data-i18n="comp.think">深度思考</span>
           </button>
-          <button class="pill" id="webPill" title="联网搜索后再回答">
+          <button class="pill" id="webPill" title="联网搜索后再回答" data-i18n-title="comp.webTip">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
               <circle cx="12" cy="12" r="8.4"/>
               <path d="M3.8 12h16.4M12 3.6c2.6 2.4 3.9 5.3 3.9 8.4s-1.3 6-3.9 8.4c-2.6-2.4-3.9-5.3-3.9-8.4S9.4 6 12 3.6z"/>
             </svg>
-            联网搜索
+            <span data-i18n="comp.web">联网搜索</span>
           </button>
           <div class="cright">
-            <button class="att" id="attBtn" title="上传图片或文件">
+            <button class="att" id="attBtn" title="上传图片或文件" data-i18n-title="comp.attach">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
                 <path d="M16.4 8.1l-7 7a2.6 2.6 0 0 1-3.7-3.7l8.2-8.2a4.2 4.2 0 0 1 5.9 5.9l-8.3 8.3a6 6 0 0 1-8.5-8.5l7.6-7.6"/>
               </svg>
             </button>
-            <button class="mpill" id="modelPill" title="切换模型">
+            <button class="mpill" id="modelPill" title="切换模型" data-i18n-title="comp.model">
               <span id="modelPillTxt">DeepSeek V3</span>
               <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M7.4 10l4.6 4.4 4.6-4.4"/></svg>
             </button>
-            <button class="mic" id="micBtn" title="语音输入">
+            <button class="mic" id="micBtn" title="语音输入" data-i18n-title="comp.voice">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round">
                 <rect x="9.2" y="3.2" width="5.6" height="10.4" rx="2.8"/>
                 <path d="M5.8 11.4a6.2 6.2 0 0 0 12.4 0M12 17.6v3.2"/>
               </svg>
             </button>
-            <button class="stop" id="stopBtn" hidden title="停止生成">
+            <button class="stop" id="stopBtn" hidden title="停止生成" data-i18n-title="comp.stop">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="7" y="7" width="10" height="10" rx="1.5"/></svg>
             </button>
-            <button class="send" id="sendBtn" title="发送">
+            <button class="send" id="sendBtn" title="发送" data-i18n-title="comp.send">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
                 <path d="M12 19.2V5.2M5.8 11.4L12 5.2l6.2 6.2"/>
               </svg>
@@ -199,16 +220,39 @@
       </div>
       <input type="file" id="fileIn" multiple hidden
         accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md,.csv,.json,.log">
-      <div class="foot">对话与文件只存在这台电脑上</div>
+      <div class="foot" data-i18n="foot.ai">内容由 AI 生成，请仔细甄别</div>
     </div>
   </div>
+
+  <div class="wctl">
+    <button class="wc" id="wMin" title="最小化" data-i18n-title="wctl.min">
+      <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.4"><path d="M5 12h14"/></svg>
+    </button>
+    <button class="wc" id="wMax" title="最大化" data-i18n-title="wctl.max">
+      <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.4" fill="none"><rect x="6" y="6" width="12" height="12" rx="1.6"/></svg>
+    </button>
+    <button class="wc close" id="wClose" title="关闭" data-i18n-title="wctl.close">
+      <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.4"><path d="M7 7l10 10M17 7L7 17"/></svg>
+    </button>
+  </div>
 </div>
+
+<div class="srcpanel" id="srcPanel">
+  <div class="srchd">
+    <div class="srcttl" data-i18n="src.title">搜索结果</div>
+    <button class="ibtn srcx" id="srcX" title="关闭">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="srclist" id="srcList"></div>
+</div>
+<div class="srcmask" id="srcMask"></div>
 
 
 <div class="mask" id="mask">
   <div class="dialog">
     <div class="dhead">
-      <h3>系统设置</h3>
+      <h3 data-i18n="dlg.title">系统设置</h3>
       <button class="dx" id="closeX" title="关闭">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
@@ -217,19 +261,19 @@
       <nav class="dnav">
         <button class="nav on" data-pane="token">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="6.5" width="18" height="12" rx="2.4"/><path d="M3 10.5h18M7 14.5h3"/></svg>
-          Token 额度
+          <span data-i18n="dlg.token">Token 额度</span>
         </button>
         <button class="nav" data-pane="general">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="3.1"/><path d="M12 3.6v2M12 18.4v2M3.6 12h2M18.4 12h2M6.1 6.1l1.4 1.4M16.5 16.5l1.4 1.4M17.9 6.1l-1.4 1.4M7.5 16.5L6.1 17.9"/></svg>
-          通用设置
+          <span data-i18n="dlg.general">通用设置</span>
         </button>
         <button class="nav" data-pane="release">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 3.6l2.4 5.2 5.6.7-4.1 3.9 1.1 5.6-5-2.8-5 2.8 1.1-5.6L3.9 9.5l5.7-.7z"/></svg>
-          更新说明
+          <span data-i18n="dlg.release">更新说明</span>
         </button>
         <button class="nav" data-pane="terms">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6 3.4h8.6L19 7.8v12.8H6z"/><path d="M14.4 3.4v4.6H19"/><path d="M9 12.2h6M9 15.6h6"/></svg>
-          用户协议
+          <span data-i18n="dlg.terms">用户协议</span>
         </button>
       </nav>
 
@@ -267,25 +311,40 @@
         
         <div class="pane" id="paneGeneral">
           <div class="srow top">
-            <label>主题</label>
+            <label data-i18n="gen.theme">主题</label>
             <div class="themecards">
               <button class="tc" data-theme-val="light">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 3.4v1.6M12 19v1.6M3.4 12h1.6M19 12h1.6M5.9 5.9l1.1 1.1M17 17l1.1 1.1M18.1 5.9l-1.1 1.1M7 17l-1.1 1.1"/></svg>
-                浅色
+                <span data-i18n="gen.light">浅色</span>
               </button>
               <button class="tc" data-theme-val="dark">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M20 14.4A8.4 8.4 0 019.6 4a8.6 8.6 0 104.7 8.7c.4 1 .2 1.7-.3 1.7z"/></svg>
-                深色
+                <span data-i18n="gen.dark">深色</span>
               </button>
               <button class="tc" data-theme-val="auto">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><rect x="3" y="4.6" width="18" height="12" rx="2"/><path d="M8 20h8"/></svg>
-                跟随系统
+                <span data-i18n="gen.auto">跟随系统</span>
               </button>
             </div>
           </div>
 
           <div class="srow">
-            <label>默认模型</label>
+            <label data-i18n="gen.language">语言</label>
+            <div class="sctl">
+              <select id="langSel">
+                <option value="zh">简体中文</option>
+                <option value="zh-TW">繁體中文</option>
+                <option value="en">English</option>
+                <option value="ja">日本語</option>
+                <option value="ko">한국어</option>
+                <option value="ru">Русский</option>
+                <option value="ar">العربية</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="srow">
+            <label data-i18n="gen.model">默认模型</label>
             <div class="sctl">
               <select id="modelSel">
                 <option value="deepseek-chat">DeepSeek V3（deepseek-chat）</option>
@@ -295,7 +354,7 @@
           </div>
 
           <div class="srow">
-            <label>上下文保留</label>
+            <label data-i18n="gen.ctx">上下文保留</label>
             <div class="sctl">
               <select id="ctxSel">
                 <option value="6">最近 6 轮（最省）</option>
@@ -332,12 +391,19 @@
           <div class="doc">
             <div class="vwrap">
               <div>
-                <div class="vbig">Orion AI 2.3.3</div>
-                <div class="vinfo">2026-11-23 · 桌面版（Electron 35 / Windows x64）</div>
+                <div class="vbig">Orion AI 2.4.1</div>
+                <div class="vinfo">2026-11-24 · 桌面版（Electron 35 / Windows x64）</div>
               </div>
               <span class="vtag">当前版本</span>
             </div>
-            <h4>2.3.3 主要变化</h4>
+            <h4>2.4.1 主要变化</h4>
+            <ul>
+              <li>语音只花钱一次：每条回答朗读一遍就存成音频文件（按文本 + 音色做键），之后再点朗读直接播本地文件，不再请求接口、不再消耗 token。</li>
+              <li>跨重启也认：缓存落在用户数据目录的 tts 里，关掉客户端重开仍然能白嫖上次的语音。</li>
+              <li>缓存只留最近 40 条，超出的自动清最旧的，不占硬盘。</li>
+            </ul>
+            <h4>2.4.0 主要变化</h4><ul><li>改动闸门：工作模式里写文件、改文件之前先弹一张 diff 卡，列出要动的文件与 +/− 行数，点「应用」才真的落盘，点「取消」原样不动；120 秒没回应自动放弃。</li><li>可撤销：每次写入前都会做快照，卡片上留一个「撤销这一步」，点了按快照把文件恢复回去；新建的文件会被删掉。</li><li>本任务后续自动应用：嫌一项项点麻烦，可以在第一张卡上勾这一项，同一次任务里剩下的写入直接落盘。</li><li>底部用量条：工作模式右下常驻步骤数、工具次数、token 数与耗时。</li><li>权限看得见：输入框左侧的 pill 直接写当前等级——只读预览 / 工作区内修改 / 完全访问。</li><li>修了一个打包漏项：workmode.js 之前没进安装包，装完的工作模式其实是空的。</li></ul>
+            <h4>2.3.7 主要变化</h4><ul><li>工作模式改为类工作台会话：对话 / 轨迹双视图，待处理清单、工具调用卡片、结果块，底部保留输入框与工作区切换。</li></ul><h4>2.3.6 主要变化</h4><ul><li>去掉工作任务页，界面回到纯聊天形式，消息区顶部显示当前对话标题。</li><li>新增多语言：简体中文、繁體中文、English、日本語、한국어、Русский、العربية（阿拉伯语自动右到左）。</li></ul><h4>2.3.5 主要变化</h4><ul><li>去掉系统原生标题栏，换成极窄自绘顶栏，窗口按钮悬浮在右上角。</li><li>底部提示改为「内容由 AI 生成，请仔细甄别」，回答区里的重复提示已移除。</li><li>联网搜索的回答上方出现「搜索到 N 个网页」，点开后从右侧滑出来源列表。</li><li>工作区标签和下方路径实时同步；切到工作任务时，左侧对话行不再高亮。</li></ul><h4>2.3.4 主要变化</h4><ul><li>工作区标签和下方路径实时同步，切换后立即更新。</li><li>切到工作任务时，左侧对话行不再保持高亮。</li></ul><h4>2.3.3 主要变化</h4>
             <ul>
               <li>侧栏改成「新工作任务 / 新对话」两个入口，下面是项目工作区和最近对话，样式参照主流的桌面 AI 客户端。</li>
               <li>启动直接进对话页，不再一打开就跳到工作任务。</li>
@@ -491,8 +557,10 @@
 </div>
 <div class="cmenu" id="cmenu" hidden></div>
 
+<script src="i18n.js"></script>
 <script src="core.js"></script>
 <script src="ui.js"></script>
+<script src="workmode.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

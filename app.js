@@ -123,15 +123,25 @@ async function webSearch(q) {
   if (!res.ok) throw new Error(errText(res.status, body));
   const j = JSON.parse(body);
   const rs = (j.results || []).filter((r) => r && r.title);
-  if (!rs.length) return '';
-  return rs.map((r, i) => {
-    const d = r.date ? String(r.date).slice(0, 10) : '';
-    return (i + 1) + '. ' + r.title + (d ? '（' + d + '）' : '') + '\n' + (r.summary || r.snippet || '') + '\n来源：' + r.url;
+  if (!rs.length) return { text: '', list: [] };
+  const list = rs.map((r) => ({
+    title: String(r.title || ''),
+    url: String(r.url || ''),
+    date: r.date ? String(r.date).slice(0, 10) : '',
+    site: String(r.site || r.source || r.site_name || (r.url ? String(r.url).replace(/^https?:\/\//, '').split('/')[0] : '')),
+    summary: String(r.summary || r.snippet || ''),
+  }));
+  const text = list.map((r, i) => {
+    return (i + 1) + '. ' + r.title + (r.date ? '（' + r.date + '）' : '') + '\n' + r.summary + '\n来源：' + r.url;
   }).join('\n\n');
+  return { text: text, list: list };
 }
 
 
-var tts = { a: null, btn: null, url: '' };
+var tts = { a: null, btn: null, url: '', key: '' };
+var ttsMem = {};          // 本次运行内的语音缓存：key -> dataURL
+var TTS_KEEP = 40;        // 磁盘里保留最近 40 条
+
 function plainText(md) {
   return String(md || '')
     .replace(/```[\s\S]*?```/g, '')
@@ -144,6 +154,33 @@ function plainText(md) {
     .trim();
 }
 
+function ttsKey(text) {
+  var s = String(text || '');
+  var h = 0x811c9dc5;
+  for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = (h * 16777619) >>> 0; }
+  return 'v' + String(store.voice || 'stella').replace(/[^\w-]/g, '') + '_' + h.toString(36) + '_' + s.length.toString(36);
+}
+
+function blobToDataURL(blob) {
+  return new Promise(function (res, rej) {
+    var fr = new FileReader();
+    fr.onload = function () { res(String(fr.result || '')); };
+    fr.onerror = function () { rej(new Error('读取音频失败')); };
+    fr.readAsDataURL(blob);
+  });
+}
+
+function ttsPlay(src, btn) {
+  if (tts.a) { try { tts.a.pause(); } catch (e) {} tts.a = null; }
+  var a = new Audio(src);
+  tts.a = a; tts.btn = btn;
+  btn.classList.add('on');
+  btn.innerHTML = ICON.mute;
+  a.onended = function () { btn.classList.remove('on'); btn.innerHTML = ICON.speak; tts.a = null; };
+  a.onerror = function () { toast('这条语音文件坏掉了，已清掉缓存，再点一次会重新合成'); btn.classList.remove('on'); btn.innerHTML = ICON.speak; tts.a = null; };
+  return a.play();
+}
+
 async function speak(text, btn) {
   if (tts.btn === btn && tts.a && !tts.a.paused) {
     tts.a.pause();
@@ -152,31 +189,47 @@ async function speak(text, btn) {
     btn.innerHTML = ICON.speak;
     return;
   }
-  if (tts.a) { tts.a.pause(); tts.a = null; }
-  const t = plainText(text).slice(0, 9500);
+  if (tts.a) { try { tts.a.pause(); } catch (e) {} tts.a = null; }
+  var t = plainText(text).slice(0, 9500);
   if (!t) return;
-  toast('正在合成语音…');
+  var key = ttsKey(t);
+
+  // 1) 本次运行里已经合成过：直接播，不再请求接口
+  if (ttsMem[key]) { try { await ttsPlay(ttsMem[key], btn); } catch (e) {} return; }
+
+  // 2) 磁盘里有上次合成的文件：读出来播，同样不请求接口
+  if (window.orion && window.orion.ttsCache) {
+    try {
+      var c = await window.orion.ttsCache(key);
+      if (c && c.ok && c.data) {
+        var src = 'data:audio/wav;base64,' + c.data;
+        ttsMem[key] = src;
+        try { await ttsPlay(src, btn); } catch (e) {}
+        return;
+      }
+    } catch (e) {}
+  }
+
+  // 3) 真没有才去合成，合成完存一份
+  toast('正在合成语音…（每条只合成一次）');
   try {
-    const res = await fetch(apiBase() + '/v1/tools/tts', {
+    var res = await fetch(apiBase() + '/v1/tools/tts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + store.key },
       body: JSON.stringify({ text: t, voice_id: store.voice || 'stella', format: 'wav', filter_markdown: true }),
     });
     if (!res.ok) throw new Error(errText(res.status, await res.text()));
-    const blob = await res.blob();
-    if (tts.url) URL.revokeObjectURL(tts.url);
-    tts.url = URL.createObjectURL(blob);
-    const a = new Audio(tts.url);
-    tts.a = a; tts.btn = btn;
-    btn.classList.add('on');
-    btn.innerHTML = ICON.mute;
-    a.onended = () => { btn.classList.remove('on'); btn.innerHTML = ICON.speak; tts.a = null; };
-    await a.play();
+    var blob = await res.blob();
+    var dataUrl = await blobToDataURL(blob);
+    ttsMem[key] = dataUrl;
+    if (window.orion && window.orion.ttsCache) {
+      try { await window.orion.ttsCache(key, dataUrl.split(',')[1]); } catch (e) {}
+    }
+    await ttsPlay(dataUrl, btn);
   } catch (e) {
     toast('朗读失败：' + ((e && e.message) || '网络错误'));
   }
 }
-
 
 var recState = { mr: null, chunks: [], stream: null, auto: 0 };
 
@@ -305,6 +358,17 @@ async function send(text, opts) {
   }
   if ((!text && !atts.length) || busy.on) return;
   if (!store.key) { openSettings('先填 API Key 再发消息', 'general'); return; }
+
+  const workTarget = (typeof isWorkConv === 'function' && isWorkConv(cur())) || store.pendingKind === 'task';
+  if (workTarget && text) {
+    $('#input').value = '';
+    $('#input').style.height = 'auto';
+    if (atts.length) { atts.splice(0); if (typeof renderChips === 'function') renderChips(); }
+    store.pendingKind = 'task';
+    await startAgentRun(text);
+    return;
+  }
+
   showChatV();
 
   const reuse = !!(opts && opts.reuse);
@@ -343,13 +407,16 @@ async function send(text, opts) {
     }
     if (ocrErr) toast('附件识别失败：' + ocrErr);
   }
+  let webList = [];
   if (store.web && text) {
     setBusy(true);
     toast('正在联网搜索…');
     try {
       const qk = text.slice(0, 128);
       if (webCache[qk] == null) webCache[qk] = await webSearch(text);
-      webText = String(webCache[qk] || '');
+      const wr = webCache[qk] || { text: '', list: [] };
+      webText = String(wr.text || '');
+      webList = wr.list || [];
       if (webText.length > WEB_TEXT_MAX) webText = webText.slice(0, WEB_TEXT_MAX) + '\n…（更多结果已省略）';
     } catch (e) { toast('联网搜索失败：' + ((e && e.message) || '网络错误')); }
     setBusy(false);
@@ -364,12 +431,14 @@ async function send(text, opts) {
     if (keep.length) um.atts = keep;
     if (attachText) um.ocr = attachText;
     if (webText) um.web = webText;
+    if (webList.length) um.webList = webList;
     conv.messages.push(um);
     const t0 = text || (sending[0] && sending[0].name) || '新对话';
     if (conv.title === '新对话' || !conv.title) conv.title = t0.replace(/\s+/g, ' ').slice(0, 26);
   }
   conv.ts = Date.now();
   const am = { role: 'assistant', content: '', reasoning: '', usage: null, elapsed: 0, t0: Date.now() };
+  if (webList.length) am.webList = webList;
   conv.messages.push(am);
   $('#input').value = '';
   autoHeight();
@@ -541,12 +610,18 @@ $('#input').addEventListener('drop', (e) => {
   addFiles(e.dataTransfer.files);
 });
 
-$('#newChatBtn').addEventListener('click', () => {
+function newChatStart(kind) {
   store.curId = null;
+  store.pendingKind = kind || 'chat';
   save(); renderConvs(); renderChat(); renderTop();
   showChatV();
+  markEntry(kind);
+  if (kind === 'task' && typeof showWorkView === 'function') showWorkView();
   $('#input').focus();
-});
+}
+
+$('#newChatBtn').addEventListener('click', () => newChatStart('chat'));
+if ($('#workNewBtn')) $('#workNewBtn').addEventListener('click', () => newChatStart('task'));
 
 $('#convList').addEventListener('click', (e) => {
   const del = e.target.closest('[data-del]');
@@ -620,6 +695,41 @@ $('#setDots').addEventListener('click', (e) => { e.stopPropagation(); openSettin
 $('#setBtn').addEventListener('click', () => openSettings('', 'token'));
 $('#closeX').addEventListener('click', closeSettings);
 $('#mask').addEventListener('click', (e) => { if (e.target === $('#mask')) closeSettings(); });
+
+let srcOwner = null;
+function openSrcPanel(list, btn) {
+  const p = $('#srcPanel'), l = $('#srcList');
+  if (!p || !l) return;
+  l.innerHTML = '<div class="srcnum">' + t('src.count', { n: list.length }) + '</div>' + list.map((r) => {
+    return '<a class="srcitem" href="' + esc(r.url || '#') + '" target="_blank" rel="noreferrer">' +
+      '<div class="siteline"><span class="sitesite">' + esc(r.site || '网页') + '</span>' +
+      (r.date ? '<span class="sitedate">' + esc(r.date) + '</span>' : '') +
+      '</div><div class="sitetitle">' + esc(r.title || '') + '</div>' +
+      (r.summary ? '<div class="sitesum">' + esc(r.summary) + '</div>' : '') + '</a>';
+  }).join('');
+  if (srcOwner) srcOwner.classList.remove('on');
+  srcOwner = btn || null;
+  if (srcOwner) srcOwner.classList.add('on');
+  p.classList.add('open');
+  $('#srcMask').classList.add('open');
+}
+function closeSrcPanel() {
+  if ($('#srcPanel')) $('#srcPanel').classList.remove('open');
+  if ($('#srcMask')) $('#srcMask').classList.remove('open');
+  if (srcOwner) srcOwner.classList.remove('on');
+  srcOwner = null;
+}
+if ($('#srcX')) $('#srcX').addEventListener('click', closeSrcPanel);
+if ($('#srcMask')) $('#srcMask').addEventListener('click', closeSrcPanel);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSrcPanel(); });
+
+if (window.orion && window.orion.win) {
+  if ($('#wMin')) $('#wMin').addEventListener('click', () => window.orion.win('min'));
+  if ($('#wMax')) $('#wMax').addEventListener('click', () => window.orion.win('max'));
+  if ($('#wClose')) $('#wClose').addEventListener('click', () => window.orion.win('close'));
+} else {
+  const w = document.querySelector('.wctl'); if (w) w.style.display = 'none';
+}
 $$('.nav').forEach((b) => b.addEventListener('click', () => {
   switchPane(b.dataset.pane);
   if (b.dataset.pane === 'token') fetchBalance(true);
@@ -631,6 +741,14 @@ $('#baseInput').addEventListener('change', () => {
   store.base = $('#baseInput').value.trim() || 'https://api.deepseek.com'; save();
 });
 $('#modelSel').addEventListener('change', () => { store.model = $('#modelSel').value; save(); renderTop(); });
+if ($('#langSel')) {
+  $('#langSel').addEventListener('change', () => {
+    store.lang = $('#langSel').value || 'zh';
+    save();
+    applyLang(store.lang);
+    syncHero();
+  });
+}
 $('#ctxSel').addEventListener('change', () => {
   const v = parseInt($('#ctxSel').value, 10);
   store.ctx = isFinite(v) && v >= 0 ? v : 12;
@@ -767,6 +885,7 @@ function agAddStep(run, kind, text, extra) {
   run.steps.push(Object.assign({ kind, text: String(text == null ? '' : text), ts: Date.now() }, extra || {}));
   if (run.steps.length > 80) run.steps = run.steps.slice(-80);
   renderTasks();
+  if (typeof renderWorkView === 'function' && typeof isWorkConv === 'function' && isWorkConv(cur())) renderWorkView();
 }
 
 async function agCallModel(hist) {
@@ -783,12 +902,13 @@ async function agCallModel(hist) {
   return { text: (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || '', usage: j.usage };
 }
 
-async function startAgentRun() {
-  const goal = ($('#agGoal').value || '').trim();
-  if (!goal) { toast('先写任务目标'); $('#agGoal').focus(); return; }
+async function startAgentRun(workGoal) {
+  const inWork = typeof workGoal === 'string' && workGoal.trim() !== '';
+  const goal = inWork ? workGoal.trim() : ($('#agGoal').value || '').trim();
+  if (!goal) { toast('先写任务目标'); if ($('#agGoal')) $('#agGoal').focus(); return; }
   if (!(store.key || '').trim()) { openSettings('填好 API Key 才能执行任务', 'general'); return; }
   if (!window.orion || !window.orion.tool) { toast('任务代理需要在桌面客户端里运行'); return; }
-  const perms = $('#agPerms').value || 'workspace';
+  const perms = inWork ? (store.agPerms || 'workspace') : ($('#agPerms').value || 'workspace');
   store.agPerms = perms;
   const run = {
     id: 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5),
@@ -799,10 +919,18 @@ async function startAgentRun() {
     ], tokens: 0,
   };
   store.tasks.unshift(run);
-  $('#agGoal').value = '';
-  agExpanded[run.id] = true;
-  save(); renderTasks();
-  toast('任务已开始，可在面板查看每一步');
+  if (inWork) {
+    const c = ensureConv();
+    c.kind = 'task';
+    c.title = goal.replace(/\s+/g, ' ').slice(0, 28) || '新工作任务';
+    c.runs = (c.runs || []).concat(run.id);
+    store.pendingKind = 'task';
+    save(); renderConvs(); renderTop(); renderChat();
+  } else {
+    $('#agGoal').value = '';
+    agExpanded[run.id] = true;
+    save(); renderTasks();
+  }
   await agentLoop(run);
 }
 
@@ -811,12 +939,23 @@ async function agentLoop(run) {
     for (let step = 0; step < AG_MAX_STEPS; step++) {
       if (run.stopped || run.status !== 'running') break;
       if (!run.hist.some((m) => m.role === 'assistant') && step === 0) {  }
-      const { text } = await agCallModel(run.hist);
+      const { text, usage } = await agCallModel(run.hist);
+      if (usage) {
+        run.tokens = (run.tokens || 0) + (usage.total_tokens || ((usage.prompt_tokens || 0) + (usage.completion_tokens || 0)));
+        run.ctxTok = usage.prompt_tokens || run.ctxTok || 0;
+        run.calls = (run.calls || 0) + 1;
+      }
       run.hist.push({ role: 'assistant', content: text });
       const obj = agParseJSON(text);
       if (!obj) {
         agAddStep(run, 'err', '模型没有返回可解析的 JSON，任务中止。原始回复：\n' + text.slice(0, 300));
         run.status = 'failed'; break;
+      }
+      if (Array.isArray(obj.todos) && obj.todos.length) {
+        run.todos = obj.todos.slice(0, 20).map(function (td) {
+          return typeof td === 'string' ? { text: td, done: false } : { text: String(td.text || td.title || ''), done: !!td.done };
+        });
+        run.planned = true;
       }
       if (obj.thought) agAddStep(run, 'think', obj.thought);
       const tool = obj.tool || (obj.summary ? 'finish' : '');
@@ -829,6 +968,10 @@ async function agentLoop(run) {
       }
       agAddStep(run, 'tool', tool + '\n' + JSON.stringify(args, null, 2));
       const r = await window.orion.tool(run.id, tool, Object.assign({}, args, { __perms: run.perms }));
+      run.tools = (run.tools || 0) + 1;
+      if (r && r.diff && r.diff.length) {
+        run.diff = { card: r.diff[0], state: r.applied ? 'applied' : 'cancelled', seq: r.undo || '' };
+      }
       if (r && r.image) agAddStep(run, 'obs', r.output, { image: r.image });
       else agAddStep(run, r && r.ok ? 'obs' : 'err', (r && r.output) || '(无返回)');
       run.hist.push({ role: 'user', content: '工具 ' + tool + ' 返回：\n' + String((r && r.output) || '').slice(0, 4000) });
@@ -847,6 +990,7 @@ async function agentLoop(run) {
     if (run.status === 'running') run.status = run.stopped ? 'stopped' : 'done';
     run.ts = run.ts || Date.now();
     save(); renderTasks(); renderQuota();
+    if (typeof renderWorkView === 'function' && typeof isWorkConv === 'function' && isWorkConv(cur())) renderWorkView();
   }
 }
 
@@ -874,9 +1018,21 @@ $('#agClear').addEventListener('click', () => {
 });
 
 
+if (window.orion && window.orion.onDiff) {
+  window.orion.onDiff(function (d) {
+    if (!d || !d.runId) return;
+    var run = (store.tasks || []).filter(function (r) { return r.id === d.runId; })[0];
+    if (!run) return;
+    run.diff = { card: d.card, state: 'pending', seq: '' };
+    save();
+    if (typeof renderWorkView === 'function' && typeof isWorkConv === 'function' && isWorkConv(cur())) renderWorkView();
+    if (typeof renderTasks === 'function') renderTasks();
+  });
+}
 window.__katexReady = function () { if (window.katex) renderChat(); };
 function __initOrion() {
   applyTheme();
+  applyLang(store.lang || 'zh');
   if (window.matchMedia) {
     const mq = matchMedia('(prefers-color-scheme: dark)');
     const fn = () => { if (store.theme === 'auto') applyTheme(); };
@@ -884,13 +1040,19 @@ function __initOrion() {
   }
   renderTop(); renderConvs(); renderChat(); renderQuota(); renderTasks();
   renderHome();
-  var hh = new Date().getHours();
-  var hi = hh < 5 ? '夜深了' : hh < 9 ? '早上好' : hh < 12 ? '上午好' : hh < 14 ? '中午好' : hh < 18 ? '下午好' : hh < 23 ? '晚上好' : '夜深了';
-  if ($('#heroSay')) $('#heroSay').textContent = hi + '，我是 Orion AI！';
-  if ($('#prjName')) $('#prjName').textContent = wsLabel(store.workPath || agWork);
+  syncHero();
+  renderWsPill();
   if ($('#agPerms')) $('#agPerms').value = store.agPerms || 'workspace';
   if (window.orion && window.orion.info) {
-    window.orion.info().then((i) => { if (i && i.work) { agWork = i.work; $('#agWorkPath').textContent = i.work; $('#agWorkPath').title = i.work; } }).catch(() => {});
+    window.orion.info().then((i) => {
+      if (i && i.work) {
+        agWork = i.work;
+        if (!store.workPath || !isAbsPath(store.workPath)) { store.workPath = i.work; save(); }
+        else if (store.workPath !== i.work && window.orion.setWork) window.orion.setWork(store.workPath).catch(() => {});
+        renderWsPill();
+        if ($('#agWorkPath')) { $('#agWorkPath').textContent = liveWork() || i.work; $('#agWorkPath').title = liveWork() || i.work; }
+      }
+    }).catch(() => {});
   }
   if (store.web) $('#webPill').classList.add('on');
   if (store.key) fetchBalance(true); else if ($('#balState')) $('#balState').textContent = '未填 API Key，无法拉取';
@@ -911,7 +1073,7 @@ var HOME_MODES = {
 };
 
 function wsLabel(p) {
-  if (!p) return '默认工作区';
+  if (!p) return t('work.defaultWs');
   var s = String(p).replace(/[\\/]+$/, '');
   if (/^[A-Za-z]:$/.test(s)) return s + ' 盘';
   var i = Math.max(s.lastIndexOf('\\'), s.lastIndexOf('/'));
@@ -969,18 +1131,31 @@ function menuItem(box, title, sub, on, cur) {
   box.appendChild(it);
 }
 
+function isAbsPath(p) { return /^[A-Za-z]:[\\/]/.test(p || '') || /^\\\\/.test(p || '') || (p || '').charAt(0) === '/'; }
+
+function liveWork() {
+  var a = store.workPath || '';
+  if (a && !isAbsPath(a)) a = '';
+  return a || agWork || '';
+}
+
 function renderWsPill() {
-  var t = $('#wsPillTxt');
-  if (t) t.textContent = wsLabel(store.workPath);
+  var w = liveWork();
+  var tt = $('#wsPillTxt');
+  if (tt) tt.textContent = w ? wsLabel(w) : t('work.defaultWs');
   var p = $('#wsPill');
-  if (p) p.title = store.workPath || '默认工作区';
+  if (p) p.title = w || t('work.defaultWs');
+  var wt = $('#wpWorkTxt');
+  if (wt) { wt.textContent = w || 'workspace'; wt.title = w || 'workspace'; }
+  var pn = $('#prjName');
+  if (pn) { pn.textContent = w ? wsLabel(w) : t('work.area'); pn.title = w || ''; }
 }
 
 function renderWsList() {
   var box = $('#wsList');
   if (!box) return;
   box.innerHTML = '';
-  var items = [{ p: '', n: '默认工作区' }];
+  var items = [{ p: '', n: t('work.defaultWs') }];
   (store.spaces || []).forEach(function (p) { items.push({ p: p, n: wsLabel(p) }); });
   items.forEach(function (it) {
     var b = document.createElement('button');
@@ -1002,10 +1177,11 @@ function applyWork(p) {
   save();
   renderWsPill();
   renderWsList();
+  renderWork();
   if ($('#agWorkPath')) $('#agWorkPath').textContent = p || agWork || 'workspace';
   if (window.orion && window.orion.info) {
     window.orion.info().then(function (i) {
-      if (!p && i && i.work && $('#agWorkPath')) { $('#agWorkPath').textContent = i.work; $('#agWorkPath').title = i.work; }
+      if (!p && i && i.work) { agWork = i.work; renderWsPill(); if ($('#agWorkPath')) { $('#agWorkPath').textContent = i.work; $('#agWorkPath').title = i.work; } }
     }).catch(function () {});
   }
   if (p && window.orion && window.orion.setWork) {
@@ -1084,40 +1260,42 @@ $('#modePill').addEventListener('click', function () {
   });
 });
 
-$('#wsPill').addEventListener('click', function () {
-  openMenu($('#wsPill'), function (box) {
+function openWsMenu(anchor) {
+  openMenu(anchor, function (box) {
     var hd = document.createElement('div');
     hd.className = 'ohd';
-    hd.textContent = '工作区';
+    hd.textContent = t('work.area');
     box.appendChild(hd);
-    menuItem(box, '默认工作区', '保存在用户数据目录', function () { applyWork(''); }, !store.workPath);
+    menuItem(box, t('work.defaultWs'), '保存在用户数据目录', function () { applyWork(''); }, !store.workPath);
     (store.spaces || []).forEach(function (p) {
       menuItem(box, wsLabel(p), p, function () { applyWork(p); }, store.workPath === p);
     });
     menuItem(box, '选择文件夹…', '把本机任意目录设为工作区', addWork, false);
   });
-});
+}
+
+$('#wsPill').addEventListener('click', function () { openWsMenu($('#wsPill')); });
 
 
-$('#workNewBtn').addEventListener('click', function () { showWork(); });
-$('#prjWork').addEventListener('click', function () { showWork(); });
+if ($('#prjWork')) $('#prjWork').addEventListener('click', function () { openWsMenu($('#prjWork')); });
+if ($('#wspacePill')) $('#wspacePill').addEventListener('click', function () { openWsMenu($('#wspacePill')); });
 
 var WFILTER = 'all';
 
+function markEntry(kind) {
+  var k = kind || (cur() && cur().kind) || store.pendingKind || 'chat';
+  if ($('#newChatBtn')) $('#newChatBtn').classList.toggle('on', k !== 'task');
+  if ($('#workNewBtn')) $('#workNewBtn').classList.toggle('on', k === 'task');
+}
+
 function tabState(work) {
-  if ($('#tabWork')) $('#tabWork').classList.toggle('on', work);
-  if ($('#tabChat')) $('#tabChat').classList.toggle('on', !work);
+  var side = document.querySelector('.side');
+  if (side) side.classList.remove('workview');
+  markEntry();
 }
 
 function showWork() {
-  var m = document.querySelector('.main');
-  if (!m) return;
-  m.classList.add('work');
-  m.classList.remove('empty');
-  tabState(true);
-  renderWork();
-  var g = $('#wpGoal');
-  if (g) setTimeout(function () { g.focus(); }, 40);
+  showChatV();
 }
 
 function showChatV() {

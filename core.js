@@ -81,7 +81,7 @@ function cur() { return store.convs.find((c) => c.id === store.curId) || null; }
 function ensureConv() {
   let c = cur();
   if (!c) {
-    c = { id: 'c' + Date.now().toString(36), title: '新对话', ts: Date.now(), messages: [] };
+    c = { id: 'c' + Date.now().toString(36), title: '新对话', ts: Date.now(), messages: [], kind: store.pendingKind || 'chat' };
     store.convs.unshift(c);
     store.curId = c.id;
   }
@@ -111,6 +111,7 @@ const ICON = {
   check: SV('<path d="M4.6 12.4l4.6 4.6L19.4 6.8"/>'),
   speak: SV('<path d="M4.4 9.6h3.4l4.6-3.8v12.4l-4.6-3.8H4.4z"/><path d="M15.6 8.6a4.6 4.6 0 010 6.8"/><path d="M18.2 6.2a8 8 0 010 11.6"/>'),
   mute: SV('<path d="M4.4 9.6h3.4l4.6-3.8v12.4l-4.6-3.8H4.4z"/><path d="M16 9.4l5 5M21 9.4l-5 5"/>'),
+  glb: SV('<circle cx="12" cy="12" r="8.4"/><path d="M3.6 12h16.8"/><path d="M12 3.6c2.4 2.4 3.6 5.3 3.6 8.4s-1.2 6-3.6 8.4c-2.4-2.4-3.6-5.3-3.6-8.4S9.6 6 12 3.6z"/>'),
 };
 
 

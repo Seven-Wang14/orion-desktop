@@ -4,11 +4,11 @@ function grpLabel(ts) {
   const d = new Date(ts), now = new Date();
   const key = (x) => x.getFullYear() * 1000 + x.getMonth() * 40 + x.getDate();
   const dd = Math.round((now - d) / 864e5);
-  if (key(d) === key(now)) return '今天';
-  if (dd === 1) return '昨天';
-  if (dd < 7) return '最近 7 天';
-  if (d.getFullYear() === now.getFullYear()) return (d.getMonth() + 1) + ' 月';
-  return d.getFullYear() + ' 年 ' + (d.getMonth() + 1) + ' 月';
+  if (key(d) === key(now)) return t('conv.today');
+  if (dd === 1) return t('conv.yesterday');
+  if (dd < 7) return t('conv.last7');
+  if (d.getFullYear() === now.getFullYear()) return t('conv.month', { m: d.getMonth() + 1 });
+  return t('conv.year', { y: d.getFullYear(), m: d.getMonth() + 1 });
 }
 
 let msMode = false;
@@ -28,9 +28,9 @@ function renderConvs() {
     $('#msbar').classList.remove('on');
     _sel.clear();
   }
-  $('#msCnt').textContent = '已选 ' + _sel.size + ' 项';
+  $('#msCnt').textContent = t('ms.selected', { n: _sel.size });
   if (!convs.length) {
-    list.innerHTML = '<div class="empty">' + (q ? '没有匹配的对话' : '还没有对话，点上面开一个') + '</div>';
+    list.innerHTML = '<div class="empty">' + (q ? t('conv.nomatch') : t('conv.empty')) + '</div>';
     return;
   }
   const pinned = convs.filter((c) => c.pin);
@@ -122,7 +122,9 @@ function toast(t) {
 
 function renderTop() {
   const c = cur();
-  if ($('#topTitle')) $('#topTitle').textContent = c && c.messages.length ? (c.title || '新对话') : '新对话';
+  const ttl = c ? (c.title || (c.kind === 'task' ? t('nav.newTask') : t('nav.newChat'))) : t('nav.newChat');
+  if ($('#topTitle')) $('#topTitle').textContent = ttl;
+  if ($('#chatTitle')) $('#chatTitle').textContent = ttl;
   $('#thinkPill').classList.toggle('on', store.model === 'deepseek-reasoner');
 }
 
@@ -204,7 +206,6 @@ function aiNode(m) {
   const el = document.createElement('div');
   el.className = 'msg ai';
   el.innerHTML = '<div class="ai-body"></div>' +
-    '<p class="disc" hidden>本回答由 AI 生成，内容仅供参考，请仔细甄别</p>' +
     '<div class="acts" hidden>' +
     '<button class="act" data-act="copy" title="复制">' + ICON.copy + '</button>' +
     '<button class="act" data-act="speak" title="朗读回答">' + ICON.speak + '</button>' +
@@ -243,6 +244,15 @@ function fillAI(el, m, streaming) {
     }
     think.querySelector('.tb').innerHTML = md(m.reasoning || '');
   }
+  let wc = el.querySelector('.wchip');
+  if (m.webList && m.webList.length && !wc) {
+    wc = document.createElement('button');
+    wc.className = 'wchip';
+    wc.innerHTML = ICON.glb +
+      '<span>' + t('src.found', { n: m.webList.length }) + '</span>' + ICON.chev;
+    wc.addEventListener('click', () => openSrcPanel(m.webList, wc));
+    el.insertBefore(wc, box);
+  }
   box.innerHTML = md(m.content || '') + (streaming ? '<span class="caret"></span>' : '');
 
   if (m.stopped && !el.querySelector('.chipstop')) {
@@ -252,7 +262,6 @@ function fillAI(el, m, streaming) {
     el.insertBefore(cs, el.querySelector('.think') || box);
   }
   if (!streaming) {
-    el.querySelector('.disc').hidden = false;
     el.querySelector('.acts').hidden = false;
     const um = el.querySelector('.umeta');
     if (m.usage) {
@@ -272,6 +281,11 @@ function scrollBottom(force) {
 
 function renderChat() {
   const c = cur();
+  if (typeof isWorkConv === 'function' && isWorkConv(c)) {
+    showWorkView();
+    return;
+  }
+  if (typeof hideWorkView === 'function') hideWorkView();
   const wrap = $('#msgWrap');
   wrap.innerHTML = '';
   const empty = !c || !c.messages.length;
@@ -377,6 +391,7 @@ function openSettings(tip, pane) {
   $('#keyInput').value = store.key || '';
   $('#baseInput').value = store.base || 'https://api.deepseek.com';
   $('#modelSel').value = store.model || 'deepseek-chat';
+  if ($('#langSel')) $('#langSel').value = I18N[store.lang] ? store.lang : 'zh';
   if ($('#ctxSel')) $('#ctxSel').value = String(typeof store.ctx === 'number' ? store.ctx : 12);
   $('#rateInput').value = store.rate;
   $$('.tc').forEach((b) => b.classList.toggle('on', b.dataset.themeVal === store.theme));
