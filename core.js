@@ -208,6 +208,105 @@ function buildList(lines, start, indent, d) {
   return { html: html, next: i };
 }
 
+var HL_FAM = { c:'clike',h:'clike',cpp:'clike',cc:'clike',cxx:'clike',hpp:'clike',cs:'clike',java:'clike',js:'clike',mjs:'clike',ts:'clike',jsx:'clike',tsx:'clike',go:'clike',rs:'clike',kt:'clike',swift:'clike',php:'clike',m:'clike',scala:'clike',dart:'clike',py:'hash',py3:'hash',sh:'hash',bash:'hash',zsh:'hash',rb:'hash',yml:'hash',yaml:'hash',toml:'hash',ini:'hash',conf:'hash',ps1:'hash',r:'hash',sql:'hash',json:'json',html:'markup',xml:'markup',svg:'markup',vue:'markup',css:'css',scss:'css',less:'css' };
+var HL_KW = {
+  clike: 'abstract alignas as assert auto bool boolean break byte case catch char class const constexpr continue default delete do double else enum explicit extends final finally float for friend goto if implements import inline instanceof int interface internal let long namespace native new nullptr operator override package private protected public register return self short signed sizeof static strictfp struct super switch synchronized template this throw throws transient true false try typedef typename typeof union unsigned using var virtual void volatile while include define ifdef ifndef endif pragma std string vector map set cout cin endl printf scanf null nullptr main',
+  hash: 'and as assert async await break class continue def del elif else except exec finally for from global if import in is lambda None nonlocal not or pass print raise return self True False try while with yield echo end then fi done do case esac exit export local readonly function fi elif printf sudo cd',
+  json: 'true false null',
+  css: 'important media keyframes import font-face root supports'
+};
+function hlLang(l){
+  l = String(l || '').toLowerCase().replace(/^\{?\s*\.?/, '').trim();
+  if (l === 'c++') l = 'cpp';
+  if (l === 'c#' || l === 'csharp') l = 'cs';
+  if (l === 'javascript') l = 'js';
+  if (l === 'typescript') l = 'ts';
+  if (l === 'python') l = 'py';
+  if (l === 'shell' || l === 'console') l = 'sh';
+  if (l === 'html5') l = 'html';
+  return { lang: l, fam: HL_FAM[l] || 'clike' };
+}
+function escH(s){ return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function hl(code, lang){
+  code = String(code == null ? '' : code);
+  var li = hlLang(lang), fam = li.fam, kws = HL_KW[fam] || '';
+  var buf = '', i = 0, n = code.length;
+  function put(cls, s){ if (!s) return; buf += '<span class="tk-' + cls + '">' + escH(s) + '</span>'; }
+  function plain(s){ buf += escH(s); }
+  function isKw(w){ return kws && (' ' + kws + ' ').indexOf(' ' + w.toLowerCase() + ' ') >= 0; }
+  while (i < n){
+    var ch = code.charAt(i);
+    if (fam !== 'markup' && fam !== 'css' && ch === '/' && code.charAt(i + 1) === '/'){
+      var e = code.indexOf('\n', i); if (e < 0) e = n;
+      put('com', code.slice(i, e)); i = e; continue;
+    }
+    if (fam !== 'markup' && fam !== 'css' && ch === '/' && code.charAt(i + 1) === '*'){
+      var e1 = code.indexOf('*/', i + 2); e1 = e1 < 0 ? n : e1 + 2;
+      put('com', code.slice(i, e1)); i = e1; continue;
+    }
+    if (fam === 'hash' && ch === '#'){
+      var e2 = code.indexOf('\n', i); if (e2 < 0) e2 = n;
+      put('com', code.slice(i, e2)); i = e2; continue;
+    }
+    if (fam === 'markup' && code.substr(i, 4) === '<!--'){
+      var e3 = code.indexOf('-->', i); e3 = e3 < 0 ? n : e3 + 3;
+      put('com', code.slice(i, e3)); i = e3; continue;
+    }
+    if (ch === '"' || ch === "'" || (fam === 'clike' && ch === '`')){
+      var q = ch, j = i + 1;
+      while (j < n){ if (code.charAt(j) === '\\'){ j += 2; continue; } if (code.charAt(j) === q){ j++; break; } j++; }
+      var body = code.slice(i, j), nx0 = code.charAt(j);
+      if (fam === 'json' || fam === 'css'){ while (/\s/.test(nx0) && j + 1 < n){ j++; nx0 = code.charAt(j); } }
+      if (fam === 'json'){
+        var k = j; while (k < n && /\s/.test(code.charAt(k))) k++;
+        if (code.charAt(k) === ':'){ put('attr', body); i = j; continue; }
+      }
+      put('str', body); i = j; continue;
+    }
+    if (fam === 'markup' && ch === '<' && /^<\/?[A-Za-z]/.test(code.substr(i, 2) + code.charAt(i + 1))){
+      var gt = code.indexOf('>', i); gt = gt < 0 ? n - 1 : gt;
+      var seg = code.slice(i, gt + 1);
+      var mo = seg.match(/^<\/?[A-Za-z][A-Za-z0-9:._-]*/);
+      if (mo){
+        put('tag', mo[0]);
+        var rest = seg.slice(mo[0].length), rr = /"[^"]*"|'[^']*'|[A-Za-z_:][-A-Za-z0-9_:.]*|./g, mt;
+        while ((mt = rr.exec(rest))){
+          var tk = mt[0];
+          if (tk.length === 1 && !/[A-Za-z0-9_]/.test(tk)){ plain(tk); continue; }
+          if (tk.charAt(0) === '"' || tk.charAt(0) === "'"){ put('str', tk); continue; }
+          var nxc = rest.charAt(rr.lastIndex);
+          if (nxc === '='){ put('attr', tk); } else { plain(tk); }
+        }
+        i = gt + 1; continue;
+      }
+      plain(seg); i = gt + 1; continue;
+    }
+    if (fam === 'css' && /[A-Za-z-]/.test(ch)){
+      var prop = code.substr(i).match(/^-?[A-Za-z][-A-Za-z0-9]*/);
+      if (prop){
+        var after = code.slice(i + prop[0].length);
+        if (/^\s*:/.test(after) && !/^\s*:/.test(code.substr(i))){ put('attr', prop[0]); i += prop[0].length; continue; }
+        if (isKw(prop[0])){ put('kw', prop[0]); i += prop[0].length; continue; }
+        plain(prop[0]); i += prop[0].length; continue;
+      }
+    }
+    if (/[0-9]/.test(ch) && !/[A-Za-z_$]/.test(code.charAt(i - 1))){
+      var nm = code.substr(i).match(/^0x[0-9a-fA-F]+|^[0-9]+(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?(?:[a-zA-Z]{1,3})?|^#[0-9a-fA-F]{3,8}/);
+      if (nm && nm[0]){ var t = nm[0]; if (isKw(t)) { put('kw', t); } else { put('num', t); } i += t.length; continue; }
+    }
+    if (/[A-Za-z_$]/.test(ch)){
+      var id = code.substr(i).match(/^[A-Za-z_$][A-Za-z0-9_$]*/)[0];
+      if (isKw(id)){ put('kw', id); i += id.length; continue; }
+      var k2 = i + id.length; while (k2 < n && code.charAt(k2) === ' ' && code.charAt(k2 + 1) === ' ') k2++;
+      if (code.charAt(k2) === '('){ put('fn', id); } else if (fam === 'markup'){ plain(id); }
+      else if (fam === 'css' && /^(important)$/.test(id)){ put('kw', id); }
+      else { plain(id); }
+      i += id.length; continue;
+    }
+    plain(ch); i += 1;
+  }
+  return buf;
+}
 function md(text) {
   if (!text) return '';
   const fences = [], lines = String(text).replace(/\r/g, '').split('\n');
@@ -228,7 +327,7 @@ function md(text) {
     if (fm) {
       const f = fences[+fm[1]];
       out += '<div class="codebox"><div class="codehead"><span class="lang">' + esc(f.lang || 'text') +
-        '</span><button class="cbtn">' + window.t('gen.copy') + '</button></div><pre class="codepre"><code>' + esc(f.body) + '</code></pre></div>';
+        '</span><button class="cbtn">' + window.t('gen.copy') + '</button></div><pre class="codepre"><code>' + hl(f.body, f.lang) + '</code></pre></div>';
       i++; continue;
     }
     if (!line.trim()) { i++; continue; }

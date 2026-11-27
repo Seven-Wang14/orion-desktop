@@ -319,7 +319,30 @@ Add-Type -AssemblyName System.Windows.Forms
 [System.Windows.Forms.SendKeys]::SendWait('__KEY__')
 `;
 
+ipcMain.handle('orion:openExt', (e, url) => {
+  try {
+    const u = new URL(String(url || ''));
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return false;
+    shell.openExternal(u.toString());
+    return true;
+  } catch (err) { return false; }
+});
+
 ipcMain.handle('orion:info', () => ({ work: activeWork, pwsh: PWSH, version: app.getVersion() }));
+ipcMain.handle('orion:savezip', async (e, { name, b64 } = {}) => {
+  try {
+    const w = BrowserWindow.fromWebContents(e.sender);
+    const r = await dialog.showSaveDialog(w, {
+      title: '导出 Orion 备份',
+      defaultPath: path.join(app.getPath('downloads'), name || 'orion-backup.zip'),
+      filters: [{ name: 'ZIP 压缩包', extensions: ['zip'] }]
+    });
+    if (r.canceled || !r.filePath) return '';
+    fs.writeFileSync(r.filePath, Buffer.from(b64 || '', 'base64'));
+    return r.filePath;
+  } catch (err) { return 'ERR:' + err.message; }
+});
+
 ipcMain.on('orion:win', (e, act) => {
   const w = BrowserWindow.fromWebContents(e.sender);
   if (!w) return;

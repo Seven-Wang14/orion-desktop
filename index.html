@@ -346,12 +346,40 @@
           <div class="srow">
             <label data-i18n="gen.model">默认模型</label>
             <div class="sctl">
-              <select id="modelSel">
-                <option value="deepseek-chat">DeepSeek V3（deepseek-chat）</option>
-                <option value="deepseek-reasoner">DeepSeek R1（deepseek-reasoner）</option>
+                            <select id="modelSel">
+                <optgroup label="对话">
+                  <option value="deepseek-chat">DeepSeek-V3（deepseek-chat）</option>
+                </optgroup>
+                <optgroup label="推理">
+                  <option value="deepseek-reasoner">DeepSeek-R1（deepseek-reasoner）</option>
+                </optgroup>
               </select>
             </div>
           </div>
+
+          <div class="srow">
+            <label>数据备份</label>
+            <div class="sctl" style="display:flex;gap:8px">
+              <button style="flex:1;padding:7px 10px;border-radius:8px;border:1px solid rgba(128,128,128,.32);background:transparent;color:inherit;cursor:pointer;font-size:12.5px" id="btnExpZip">导出 zip</button>
+              <button style="flex:1;padding:7px 10px;border-radius:8px;border:1px solid rgba(128,128,128,.32);background:transparent;color:inherit;cursor:pointer;font-size:12.5px" id="btnImpZip">导入 zip</button>
+              <input type="file" id="zipFile" accept=".zip,application/zip" hidden>
+
+          <div class="srow">
+            <label>开源</label>
+            <div class="sctl" style="display:flex;gap:8px;align-items:center">
+              <a id="repoLink" href="https://github.com/Seven-Wang14/orion-desktop" style="font-size:12.5px;flex:1;overflow:hidden;text-overflow:ellipsis;color:var(--accent);text-decoration:none">github.com/Seven-Wang14/orion-desktop</a>
+              <button style="padding:6px 12px;border-radius:8px;border:1px solid rgba(128,128,128,.32);background:transparent;color:inherit;cursor:pointer;font-size:12.5px" id="btnRepo">打开</button>
+            </div>
+          </div>
+          <div class="shint" style="font-size:12px;opacity:.62;line-height:1.6;margin:-4px 0 10px">
+            个人开源项目，MIT 协议，非公司产品；点地址用浏览器打开仓库，版本更新与问题反馈都在那里。
+          </div>
+            </div>
+          </div>
+          <div class="shint" style="font-size:12px;opacity:.62;line-height:1.6;margin:-4px 0 10px">
+            导出把每个对话拆成 chats/0001.js…，连同 manifest.js、settings.js 打成 zip；导入读同一个格式，按对话 id 去重。API Key 不进备份。
+          </div>
+
 
           <div class="srow">
             <label data-i18n="gen.ctx">上下文保留</label>
@@ -570,5 +598,6 @@
 <script src="ui.js"></script>
 <script src="workmode.js"></script>
 <script src="app.js"></script>
+<script src="transfer.js"></script>
 </body>
 </html>

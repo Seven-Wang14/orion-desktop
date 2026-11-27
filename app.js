@@ -1,3 +1,10 @@
+const ORION_REPO = 'https://github.com/Seven-Wang14/orion-desktop';
+const ORION_SYS = '你是 Orion，一个个人开源的 AI 客户端，不是公司产品、不是 DeepSeek 官方应用；后台接入的是 DeepSeek 大模型。' +
+  '自我介绍时说「我是 Orion，接入了 DeepSeek 大模型」，不要说自己是 DeepSeek 或深度求索公司的助手。' +
+  '被问到用什么模型时回答「我基于 DeepSeek 模型运行」。' +
+  '不主动声明版权、公司隶属或官方认证；被问到时说明这是个人开源项目，代码在 ' + ORION_REPO + ' 。' +
+  '输出代码必须用三个反引号代码块，首行标注语言（如 cpp、java、html、js、python、css、sql），便于前端上高亮。';
+
 
 
 function errText(status, body) {
@@ -490,7 +497,7 @@ async function send(text, opts) {
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + store.key },
       body: JSON.stringify({
         model: store.model,
-        messages: history,
+        messages: [{ role: 'system', content: ORION_SYS }].concat(history),
         stream: true,
         stream_options: { include_usage: true },
       }),
@@ -1063,10 +1070,15 @@ function __initOrion() {
   if (!store.key) setTimeout(() => openSettings(t('toast.needKeyStart'), 'general'), 700);
 }
 
-var HOME_MODELS = [
-  { v: 'deepseek-chat', n: 'DeepSeek V3', d: t('model.v3d') },
-  { v: 'deepseek-reasoner', n: 'DeepSeek R1', d: t('model.r1d') }
+/* 模型清单（与手机版同一份）：DeepSeek 官方发布过的全部版本都列出来。
+   只有 DeepSeek-V3 / R1 开放了 API，其余仅展示、标「未接入」。 */
+var MODEL_GROUPS = [
+  { g: '对话', l: [ { n: 'DeepSeek-V3', v: 'deepseek-chat', d: t('model.v3d') } ]},
+  { g: '推理', l: [ { n: 'DeepSeek-R1', v: 'deepseek-reasoner', d: t('model.r1d') } ]}
 ];
+var MODEL_NOAPI = '官方未接入 API';
+var HOME_MODELS = [];
+MODEL_GROUPS.forEach(function (g) { g.l.forEach(function (m) { HOME_MODELS.push(m); }); });
 var HOME_MODES = {
   read: { n: t('p.readN'), d: t('p.readD') },
   workspace: { n: t('p.wsN'), d: t('p.wsD') },
@@ -1231,14 +1243,24 @@ $('#modelPill').addEventListener('click', function () {
     hd.className = 'ohd';
     hd.textContent = t('model.menu');
     box.appendChild(hd);
-    HOME_MODELS.forEach(function (m) {
-      menuItem(box, m.n, m.d, function () {
-        store.model = m.v;
-        save();
-        renderModelPill();
-        renderTop();
-        if ($('#modelSel')) $('#modelSel').value = m.v;
-      }, store.model === m.v);
+    MODEL_GROUPS.forEach(function (g) {
+      var gh = document.createElement('div');
+      gh.className = 'ohd';
+      gh.textContent = g.g;
+      box.appendChild(gh);
+      g.l.forEach(function (m) {
+        if (!m.v) {
+          menuItem(box, m.n, MODEL_NOAPI, function () { toast(m.n + ' ' + MODEL_NOAPI); }, false);
+          return;
+        }
+        menuItem(box, m.n, m.d, function () {
+          store.model = m.v;
+          save();
+          renderModelPill();
+          renderTop();
+          if ($('#modelSel')) $('#modelSel').value = m.v;
+        }, store.model === m.v);
+      });
     });
   });
 });

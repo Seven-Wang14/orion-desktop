@@ -8,7 +8,7 @@
     "start": "electron .",
     "dist": "electron-builder --win nsis --x64"
   },
-  "author": "Orion Studio",
+  "author": "Orion contributors (个人开源项目)",
   "license": "MIT",
   "devDependencies": {
     "@electron/packager": "^18.3.6",
